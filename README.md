@@ -1,8 +1,8 @@
 # SDIS Project
 
-SDIS Project for group T&lt;n&gt;G&lt;p&gt;&lt;q&gt;.
+SDIS Project for group T7G02.
 
 Group members:
 
-1. &lt;first name&gt; &lt;family name&gt; (&lt;email address&gt;)
-2. &lt;first name&gt; &lt;family name&gt; (&lt;email address&gt;)
+1. Hugo Guimarães (up201806490@fe.up.pt)
+2. Paulo Ribeiro (up201806505@fe.up.pt)

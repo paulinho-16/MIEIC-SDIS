@@ -32,7 +32,7 @@ public class PeerInitializer {
         // Mdb -> Backup requests between peers
         InetAddress mdbAddr = InetAddress.getByName(args[5]);
         int mdbPort = args[6];
-        // mdr -> Restore between peers
+        // mdr -> Restore requests between peers
         InetAddress mdrAddr = InetAddress.getByName(args[7]);
         int mdrPort = args[8];
 

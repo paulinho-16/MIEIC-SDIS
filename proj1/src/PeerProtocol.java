@@ -1,7 +1,7 @@
 import java.io.*;
 
-public class Protocol implements RemoteInterface{
-    public Protocol() {
+public class PeerProtocol implements PeerInterface {
+    public PeerProtocol() {
         // Empty constructor by now...
     }
 

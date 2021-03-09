@@ -8,14 +8,14 @@ public class Peer {
     int mcPort, mdbPort, mdrPort;
 
     // Paths
-    String chunksPath, personalFilesPath,restoredFilesPath;
+    String chunksPath, personalFilesPath, restoredFilesPath;
 
     // Macros
     public static final int CHUNK_SIZE = 64000; // Chunk maximum size i 64KB
     public static final String DIRECTORY = "peers/"; // Temporary value. Directory created for peers in compilation should be added here
-    public static final byte CR = 0xD , LF = 0xA;  // ASCII codes for <CRLF> 
+    public static final byte CR = 0xD, LF = 0xA;  // ASCII codes for <CRLF>
 
-    public Peer(String version, String peerId, String accessPoint, InetAddress mcAddr, int mcPort, InetAddress mdbAddr,int mdbPort, InetAddress mdrAddr,int mdrPort) throws IOException {
+    public Peer(String version, String peerId, String accessPoint, InetAddress mcAddr, int mcPort, InetAddress mdbAddr, int mdbPort, InetAddress mdrAddr, int mdrPort) throws IOException {
         this.version = version;
         this.peerId = peerId;
         this.accessPoint = accessPoint;
@@ -30,16 +30,16 @@ public class Peer {
         // Initialize mc channel
         controlChannel = new Channel(mcAddr,mcPort);
         // Initialize mdb channel
-        backuoChannel = new Channel(mdbAddr,mdbPort);
+        backupChannel = new Channel(mdbAddr,mdbPort);
         // Initialize mdr channel
         restoreChannel = new Channel(mdrAddr,mdrPort);
         */
 
         // Using Registry. É assim que se faz para criar um registry quando se têm as funções noutra classe?
-        try{
+        try {
             // Create Remote Object (RMI)
-            Protocol obj = new Protocol();
-            RemoteInterface stub =  (RemoteInterface) UnicastRemoteObject.exportObject(obj, 0);
+            PeerProtocol obj = new PeerProtocol();
+            PeerInterface stub = (PeerInterface) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
@@ -48,7 +48,7 @@ public class Peer {
 
             System.err.println("Successfully initialized Remote Interface");
 
-        } catch(Exception e) {
+        } catch (Exception e) {
             System.err.println("Remote Interface Exception: " + e.toString());
             e.printStackTrace();
         }
@@ -65,13 +65,13 @@ public class Peer {
     }
 
     private void createDirectory(String path) {
-      File file = new File(path);
+        File file = new File(path);
 
-      //Creating the directory
-      if(file.mkdir()) {
-        System.out.println("Successfully creted directory: " + path);
-      } else{
-        System.out.println("Failed to create directory with path: " + path);
-      }
+        //Creating the directory
+        if (file.mkdir()) {
+            System.out.println("Successfully creted directory: " + path);
+        } else {
+            System.out.println("Failed to create directory with path: " + path);
+        }
     }
 }

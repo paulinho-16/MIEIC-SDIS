@@ -11,7 +11,7 @@ public class TestApp {
             return;
         }
 
-        // Parsing Arguments
+        // Creating RMI
         String peer_ap = args[0];
         try {
             Registry registry = LocateRegistry.getRegistry("localhost");
@@ -22,6 +22,7 @@ public class TestApp {
             return;
         }
 
+        // Parsing arguments
         String sub_protocol = args[1];
         String file_path;
         int disk_space, replication_degree;

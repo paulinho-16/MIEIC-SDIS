@@ -3,12 +3,17 @@ import java.net.*;
 
 public class Peer {
     // Constructor parameters
-    String version, peerId, accessPoint;
-    InetAddress mcAddr, mdbAddr, mdrAddr;
-    int mcPort, mdbPort, mdrPort;
-
+    private String version, peerId, accessPoint;
+    // Addresses
+    private InetAddress mcAddr, mdbAddr, mdrAddr;
+    // Ports
+    private int mcPort, mdbPort, mdrPort;
+    // Channels
+    private Channel controlChannel, backupChannel, restoreChannel;
     // Paths
-    String chunksPath, personalFilesPath, restoredFilesPath;
+    private String chunksPath, personalFilesPath, restoredFilesPath;
+    // Inicializing thead Pool executor as a scheluded
+    static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(100);
 
     // Macros
     public static final int CHUNK_SIZE = 64000; // Chunk maximum size i 64KB

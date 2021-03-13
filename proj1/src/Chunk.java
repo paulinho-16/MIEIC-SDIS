@@ -1,7 +1,7 @@
 import java.io.*
 import java.util.HashSet
 
-class Chunk{
+class Chunk implements java.io.Serializable{
     private String fileId;
     private int chunkNumber;
     private int replicationDegree = 1;

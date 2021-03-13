@@ -15,7 +15,7 @@ public class PeerInitializer {
             // Mdb -> Backup requests between peers
             System.out.println("<mdbAddr> -> Multicast address for Backup requests between peers");
             System.out.println("<mdbPort> -> Multicast port for Backup requests between peers");
-            // mdr -> Restore between peers
+            // Mdr -> Restore between peers
             System.out.println("<mdrAddr> -> Multicast address for Restore requests between peers");
             System.out.println("<mdrPort> -> Multicast port for Restore requests between peers");
             return;
@@ -32,9 +32,12 @@ public class PeerInitializer {
         // Mdb -> Backup requests between peers
         InetAddress mdbAddr = InetAddress.getByName(args[5]);
         int mdbPort = args[6];
-        // mdr -> Restore requests between peers
+        // Mdr -> Restore requests between peers
         InetAddress mdrAddr = InetAddress.getByName(args[7]);
         int mdrPort = args[8];
+
+        // Creating Multicast Channels
+        Multicast
 
         // Call a Peer object using all this parameters
         Peer peer = new Peer(version, peerId, accessPoint, mcAddr, mcPort, mdbAddr, mdbPort, mdrAddr, mdrPort);

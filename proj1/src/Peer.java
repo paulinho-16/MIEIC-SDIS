@@ -26,14 +26,13 @@ public class Peer {
         this.mdrAddr = mdrAddr;
         this.mdrPort = mdrPort;
 
-        /* Remove comment after creating channels
+        // Subsribed to all 3 multicast channels for the peer
         // Initialize mc channel
         controlChannel = new Channel(mcAddr,mcPort);
         // Initialize mdb channel
         backupChannel = new Channel(mdbAddr,mdbPort);
         // Initialize mdr channel
         restoreChannel = new Channel(mdrAddr,mdrPort);
-        */
 
         // Using Registry. É assim que se faz para criar um registry quando se têm as funções noutra classe?
         try {
@@ -69,7 +68,7 @@ public class Peer {
 
         //Creating the directory
         if (file.mkdir()) {
-            System.out.println("Successfully creted directory: " + path);
+            System.out.println("Successfully created directory: " + path);
         } else {
             System.out.println("Failed to create directory with path: " + path);
         }

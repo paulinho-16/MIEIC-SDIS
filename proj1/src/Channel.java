@@ -2,7 +2,6 @@ import java.io.*
 import java.net.*
 
 public class Channel {
-
     private final InetAddress addr;
     private final int port;
     private final MulticastSocket socket;
@@ -15,12 +14,11 @@ public class Channel {
         socket.joinGroup(addr)
     }
 
-
     void receiveMessage(){
         // TODO
     }
 
     void sendMessage(){
-        //
+        // TODO
     }
 }

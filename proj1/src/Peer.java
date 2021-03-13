@@ -28,11 +28,11 @@ public class Peer {
 
         // Subsribed to all 3 multicast channels for the peer
         // Initialize mc channel
-        controlChannel = new Channel(mcAddr,mcPort);
+        controlChannel = new Channel(mcAddr, mcPort);
         // Initialize mdb channel
-        backupChannel = new Channel(mdbAddr,mdbPort);
+        backupChannel = new Channel(mdbAddr, mdbPort);
         // Initialize mdr channel
-        restoreChannel = new Channel(mdrAddr,mdrPort);
+        restoreChannel = new Channel(mdrAddr, mdrPort);
 
         // Using Registry. É assim que se faz para criar um registry quando se têm as funções noutra classe?
         try {

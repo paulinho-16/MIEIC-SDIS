@@ -9,9 +9,17 @@ public class MessageHandler implements Runnable {
 
     @Override
     public void run() {
-        if (this.messageParser.parse() < 0) {
+
+        // Checking Parsing
+        if (!this.messageParser.parse()) {
             System.out.println("Error parsing message");
             return;
         }
+
+        // Checking Id with the Peer (Needs to have access to the peer)
+        //if(messageFactory.senderId.equals())
+
+
+
     }
 }

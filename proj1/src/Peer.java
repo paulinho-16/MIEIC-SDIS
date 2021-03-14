@@ -4,7 +4,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class Peer {
     // Constructor parameters
@@ -22,7 +22,7 @@ public class Peer {
     // Protocol
     private PeerProtocol peerProtocol;
     // Inicializing thead Pool executor as a scheluded
-    static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(100);
+    static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(100);
 
     // Macros
     public static final int CHUNK_SIZE = 64000; // Chunk maximum size i 64KB

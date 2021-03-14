@@ -16,7 +16,7 @@ public class ChunkManager {
     // Synchronized? Vários gits têm isto, o que faz sentido tendo em conta o uso de threads (verificar mais tarde)
     private synchronized void saveChunks() {
         try {
-            // ESte path ainda não está bem, é preciso atribuir um diretório correto mais tarde
+            // Este path ainda não está bem, é preciso atribuir um diretório correto mais tarde
             FileOutputStream fileOut = new FileOutputStream(path);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
             // Deve-se escrever todos os objetos que se deseja, neste caso ainda só temos um chunkMap
@@ -50,6 +50,4 @@ public class ChunkManager {
         }
         System.out.println("Deserialized chunkMap...");
     }
-
-
 }

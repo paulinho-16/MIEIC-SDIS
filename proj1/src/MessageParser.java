@@ -1,3 +1,4 @@
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class MessageParser {
@@ -10,20 +11,40 @@ public class MessageParser {
     private byte[] body; // Body without the header (Unused yet)
 
     // Header Atributes (Optional and ordered)
-    Double version;
-    String messageType, senderID, fileID;
+    private Double version;
+    private String messageType, senderID, fileID;
     int chunkNo, replicationDeg;
 
     public MessageParser(byte[] message) {
         this.message = message;
     }
 
-    public String getSenderID() {
-        return senderID;
+    public Double getVersion() {
+        return version;
     }
 
     public String getMessageType() {
         return messageType;
+    }
+
+    public String getSenderID() {
+        return senderID;
+    }
+
+    public String getFileID() {
+        return fileID;
+    }
+
+    public int getChunkNo() {
+        return chunkNo;
+    }
+
+    public int getRepDegree() {
+        return replicationDeg;
+    }
+
+    public byte[] getBody() {
+        return body;
     }
 
     // Message: <Version> <MessageType> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
@@ -60,7 +81,7 @@ public class MessageParser {
     }
 
     // Não sei se é suposto ser Strings ou Bytes, quando for preciso ser chamado vê-se
-    public static String makeHeader(String[] headerString) {
-        return String.join(" ", headerString);
+    public static byte[] makeHeader(String... headerString) {
+        return String.join(" ", headerString).getBytes();
     }
 }

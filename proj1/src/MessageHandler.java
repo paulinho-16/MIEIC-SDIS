@@ -48,8 +48,10 @@ public class MessageHandler implements Runnable {
         System.out.println("Received PUTCHUNK message");
 
         this.peer.executor.schedule(new Thread(() -> {
-            
-        }))
+            // Que parámetros serão precisos??? version e senderID??
+            Chunk chunk = new Chunk(this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getRepDegree(), this.messageParser.getBody());
+
+        }));
 
     }
 

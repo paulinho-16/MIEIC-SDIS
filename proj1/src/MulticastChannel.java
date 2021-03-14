@@ -23,6 +23,7 @@ public class MulticastChannel implements Runnable {
         this.multicastSocket.joinGroup(this.addr);
     }
 
+    // Não devia ser MulticastChannel?
     void sendMessage(byte[] message) {
         try {
             DatagramPacket packetSend = new DatagramPacket(message, message.length, this.addr, this.port);

@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -9,7 +10,6 @@ public class PeerProtocol implements PeerInterface {
     // É suposto usar scheduled thread pool executor
     ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(10);
 
-
     public PeerProtocol(String version, String peerId, MulticastControlChannel mc, MulticastDataChannel mdb, MulticastDataRecovery mdr) {
         this.version = version;
         this.peerId = peerId;
@@ -20,7 +20,14 @@ public class PeerProtocol implements PeerInterface {
 
     @Override
     public void backup(String filepath, int replication_degree) {
-        executor.execute(new Thread(() -> mdb.backup(filepath, replication_degree)));
+        System.out.println("Request: Backup");
+        executor.execute(new Thread(() -> {
+            try {
+                mdb.backup(filepath, replication_degree, version);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }));
     }
 
     @Override

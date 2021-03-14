@@ -3,7 +3,7 @@ import java.net.*;
 
 public class PeerInitializer {
     public static void main(String[] args) throws IOException {
-        if(args.length != 9) { // Might not be the correct value rigth now, checking other stuff
+        if(args.length != 9) { // Might not be the correct value right now, checking other stuff
             System.out.println("Usage: java PeerInitializer <protocolVersion> <peerId> <accessPoint>" +
             " <mcAddr> <mcPort> <mdbAddr> <mdbPort> <mdrAddr> <mdrPort>");
             System.out.println("<protocolVersion> -> Version of the protocol to be used");
@@ -21,7 +21,7 @@ public class PeerInitializer {
             return;
         }
 
-        // Version 1.0 -> No enchancements. Other versions may include several enhancements
+        // Version 1.0 -> No enhancements. Other versions may include several enhancements
         String version = args[0];
         String peerId = args[1];
         String accessPoint = args[2];

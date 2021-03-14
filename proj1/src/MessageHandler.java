@@ -1,9 +1,12 @@
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 public class MessageHandler implements Runnable {
     private MessageParser messageParser;
-    private Peer peer;
+    private String peerID;
 
-    public MessageHandler(byte[] message, Peer peer) {
-        this.peer = peer;
+    public MessageHandler(byte[] message, String peerID) {
+        this.peerID = peerID;
         this.messageParser = new MessageParser(message);
     }
 
@@ -16,7 +19,7 @@ public class MessageHandler implements Runnable {
         }
 
         // Ignore self-messages
-        if(messageParser.getSenderID().equals(this.peer.getID())) {
+        if(messageParser.getSenderID().equals(this.peerID)) {
             return;
         }
 
@@ -46,13 +49,13 @@ public class MessageHandler implements Runnable {
 
     private void handlePUTCHUNK() {
         System.out.println("Received PUTCHUNK message");
-
-        this.peer.executor.schedule(new Thread(() -> {
+        Random delay = new Random();
+        Peer.executor.schedule(new Thread(() -> {
             // Que parámetros serão precisos??? version e senderID??
             Chunk chunk = new Chunk(this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getRepDegree(), this.messageParser.getBody());
-
-        }));
-
+            Peer.getData().storeNewChunk(chunk);
+            }), delay.nextInt(401), TimeUnit.MILLISECONDS
+        );
     }
 
     private void handleSTORED() {

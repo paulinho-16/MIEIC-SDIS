@@ -14,14 +14,16 @@ public class Peer {
     // Ports
     private int mcPort, mdbPort, mdrPort;
     // Channels
-    private MulticastControlChannel controlChannel;
-    private MulticastDataRecovery backupChannel;
-    private MulticastDataChannel restoreChannel;
+    private static MulticastControlChannel controlChannel;
+    private static MulticastDataChannel backupChannel;
+    private static MulticastDataRecovery restoreChannel;
     // Paths
     private String chunksPath, personalFilesPath, restoredFilesPath;
     // Protocol
     private PeerProtocol peerProtocol;
-    // Inicializing thead Pool executor as a scheluded
+    // Peer stored data
+    private static DataStored data;
+    // Inicializing thead Pool executor as a scheduled
     static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(100);
 
     // Macros
@@ -42,11 +44,11 @@ public class Peer {
 
         // Subscribed to all 3 multicast channels for the peer
         // Initialize mc channel
-        controlChannel = new MulticastControlChannel(mcAddr, mcPort,peerId);
+        controlChannel = new MulticastControlChannel(mcAddr, mcPort, peerId);
         // Initialize mdb channel
-        backupChannel = new MulticastDataRecovery(mdbAddr, mdbPort,peerId);
+        backupChannel = new MulticastDataChannel(mdrAddr, mdrPort, peerId);
         // Initialize mdr channel
-        restoreChannel = new MulticastDataChannel(mdrAddr, mdrPort,peerId);
+        restoreChannel = new MulticastDataRecovery(mdbAddr, mdbPort, peerId);
 
         // Using Registry. É assim que se faz para criar um registry quando se têm as funções noutra classe?
         try {
@@ -85,11 +87,19 @@ public class Peer {
         return peerProtocol;
     }
 
+    public static DataStored getData() {
+        return data;
+    }
+
+    public static MulticastDataChannel getMDBChannel() {
+        return backupChannel;
+    }
+
     private void createDirectory(String path) {
-        File file = new File(path);
+        File fileData = new File(path);
 
         //Creating the directory
-        if (file.mkdir()) {
+        if (fileData.mkdir()) {
             System.out.println("Successfully created directory: " + path);
         } else {
             System.out.println("Failed to create directory with path: " + path);

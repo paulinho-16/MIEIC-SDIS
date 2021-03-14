@@ -81,7 +81,12 @@ public class MessageParser {
     }
 
     // Não sei se é suposto ser Strings ou Bytes, quando for preciso ser chamado vê-se
-    public static byte[] makeHeader(String... headerString) {
-        return String.join(" ", headerString).getBytes();
+    // https://stackoverflow.com/questions/5368704/appending-a-byte-to-the-end-of-another-byte
+    public static byte[] makeMessage(byte[] body, String... headerString) {
+        byte[] header = (String.join(" ", headerString) + CRLF + CRLF).getBytes();
+        byte[] message = new byte[header.length + body.length];
+        System.arraycopy(header, 0, message, 0, header.length);
+        System.arraycopy(body, 0, message, header.length, body.length);
+        return message;
     }
 }

@@ -9,50 +9,63 @@ public class MulticastDataChannel extends MulticastChannel {
         super(addr, port, peerID);
     }
 
-    private void backup(String filePath, int replicationDegree, String version) throws IOException{
-        if(filePath == null && replicationDegree < 1){
+    public void backup(String path, int replicationDegree, String version) throws IOException {
+        if(path == null && replicationDegree < 1) {
             throw new IllegalArgumentException("Invalid filepath or replicationDegree");
         }
 
-        // Creating the file based on the filename
-        File file = createFile(filePath);
+        // Creating new file if it doesn't exist
+        File file = createFile(path);
 
         FileInputStream in = new FileInputStream(file);
 
-        System.out.println("Initializing ");
+        System.out.println("Initializing");
         int chunkCount = 0;
-        byte[] chunk;
+        byte[] chunkData;
         int availableBytes;
-        String fileId = this.createId(filePath, this.peerID);
+        String fileId = this.createId(path, this.peerID);
+        System.out.println("FILE ID after SHA256: " + fileId);
+
+        // Add the file to the peer's list of backed up files
+        Peer.getData().backupNewFile(new FileData(path, fileId, replicationDegree));
 
         // While there are still bytes that can be read
-        while((availableBytes = in.available()) > 0){
+        while((availableBytes = in.available()) > 0) {
             // Reading the correct amount of bytes
             if(availableBytes > Peer.CHUNK_SIZE) {
-                chunk = new byte[Peer.CHUNK_SIZE];
+                chunkData = new byte[Peer.CHUNK_SIZE];
             } else {
-                chunk = new byte[availableBytes];
+                chunkData = new byte[availableBytes];
             }
-            in.read(chunk);
+            in.read(chunkData);
 
-            byte[] header =  MessageParser.makeHeader(version, "PUTCHUNK", this.peerID , fileId, chunkCount, replicationDegree, chunk);
-
+            byte[] message =  MessageParser.makeMessage(chunkData, version, "PUTCHUNK", this.peerID , fileId, Integer.toString(chunkCount), Integer.toString(replicationDegree));
+            // Verify if the peer contains
+            Chunk chunk = Peer.getData().getBackupChunk(fileId, chunkCount);
+            if (chunk == null) {
+                System.out.println("Sending PUTCHUNK for chunk number" + chunkCount);  // APAGAR
+                Peer.getData().backupNewChunk(chunk);   // Objeto mantém-se?
+                Peer.executor.execute(new StoreChunkThread(message, chunk));
+            }
             chunkCount++;
         }
+
+        // Caso em que file size é múltiplo de 64kb já está incluído no ciclo de cima? testar.
     }
 
-    public File createFile(String filePath) throws IOException {
+    public File createFile(String path) {
         try{
-            File myObj = new File(filePath);
+            File myObj = new File(path);
             if (myObj.createNewFile()) {
-                System.out.println("File created: " + filePath);
+                System.out.println("File created: " + path);
                 return myObj;
             } else {
                 System.out.println("File already exists.");
             }
-        }catch(IOException e){
-            System.out.println("Error on creating file: " + filePath);
+        }catch(Exception e){
+            System.out.println("Error on creating file: " + path);
             e.printStackTrace();
         }
+        return null;
     }
 }

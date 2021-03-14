@@ -1,7 +1,9 @@
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 
 public class TestApp {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws RemoteException {
         if (args.length < 2 || args.length > 4) {
             System.out.println("Usage: java TestApp <peer_ap> <sub_protocol> [opnd_1] [opnd_2]");
             System.out.println("\t<peer_ap> -> peer's access point");
@@ -13,9 +15,10 @@ public class TestApp {
 
         // Creating RMI
         String peer_ap = args[0];
+        PeerInterface peer;
         try {
             Registry registry = LocateRegistry.getRegistry("localhost");
-            RemoteInterface peer = (RemoteInterface) registry.lookup(peer_ap);
+            peer = (PeerInterface) registry.lookup(peer_ap);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Error creating registry: " + e.toString());

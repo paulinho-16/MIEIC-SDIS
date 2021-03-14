@@ -28,16 +28,16 @@ public class PeerInitializer {
 
         // Mc -> Control Messages between peers
         InetAddress mcAddr = InetAddress.getByName(args[3]);
-        int mcPort = args[4];
+        int mcPort = Integer.parseInt(args[4]);
         // Mdb -> Backup requests between peers
         InetAddress mdbAddr = InetAddress.getByName(args[5]);
-        int mdbPort = args[6];
+        int mdbPort = Integer.parseInt(args[6]);
         // Mdr -> Restore requests between peers
         InetAddress mdrAddr = InetAddress.getByName(args[7]);
-        int mdrPort = args[8];
+        int mdrPort = Integer.parseInt(args[8]);
 
         // Creating Multicast Channels
-        Multicast
+        //Multicast
 
         // Call a Peer object using all this parameters
         Peer peer = new Peer(version, peerId, accessPoint, mcAddr, mcPort, mdbAddr, mdbPort, mdrAddr, mdrPort);

@@ -1,6 +1,4 @@
 import java.util.Arrays;
-import java.util.StringJoiner;
-
 
 public class MessageParser {
     // Macros
@@ -12,12 +10,20 @@ public class MessageParser {
     private byte[] body; // Body without the header (Unused yet)
 
     // Header Atributes (Optional and ordered)
-    Dobule version;
-    String messageType, senderId, fileId;
+    Double version;
+    String messageType, senderID, fileID;
     int chunkNo, replicationDeg;
 
     public MessageParser(byte[] message) {
         this.message = message;
+    }
+
+    public String getSenderID() {
+        return senderID;
+    }
+
+    public String getMessageType() {
+        return messageType;
     }
 
     // Message: <Version> <MessageType> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
@@ -41,21 +47,20 @@ public class MessageParser {
         String[] splitHeader = header.trim().split(" "); // Remove extra spaces and separate header components
 
         // Parse header parameters
-        for(int j = 0; j < splitHeader.length;j++){
+        for(int j = 0; j < splitHeader.length;j++) {
            if(j == 0) this.version = Double.parseDouble(splitHeader[0]);
            else if(j == 1) this.messageType = splitHeader[1];
            else if(j == 2) this.senderID = splitHeader[2];
-           else if(j == 3) this.fieldID = splitHeader[3];
+           else if(j == 3) this.fileID = splitHeader[3];
            else if(j == 4) this.chunkNo = Integer.parseInt(splitHeader[4]);
            else if(j == 5) this.replicationDeg = Integer.parseInt(splitHeader[5]);
            else return false;
         }
         return true;
-
     }
 
     // Não sei se é suposto ser Strings ou Bytes, quando for preciso ser chamado vê-se
-    public static String makeHeader(String... headerString) {
-        return String.join(",", headerString);
+    public static String makeHeader(String[] headerString) {
+        return String.join(" ", headerString);
     }
 }

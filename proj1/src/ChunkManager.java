@@ -1,13 +1,13 @@
-import java.io.*
+import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ChunkManager{
+public class ChunkManager {
 
     private final int serverId;
     private final String path;
     private ConcurrentHashMap<String,Chunk> chunkMap = new ConcurrentHashMap<>();
 
-    // Colocar o path como uma veriavel constante?
+    // Colocar o path como uma variavel constante?
     public ChunkManager(int serverId, String path){
         this.serverId = serverId;
         this.path = path;
@@ -23,7 +23,7 @@ public class ChunkManager{
             out.writeObject(chunkMap);
             out.close();
             fileOut.close();
-            System.out.printf("Serialized data is saved in " + path);
+            System.out.println("Serialized data is saved in " + path);
         } catch (IOException i) {
             i.printStackTrace();
             System.out.println("Unable to save state in path:" + path);
@@ -37,7 +37,7 @@ public class ChunkManager{
             FileInputStream fileIn = new FileInputStream(path);
             ObjectInputStream in = new ObjectInputStream(fileIn);
             // Se depois houver mais estruturas de dados, é preciso lê-las na mesma ordem que se escrevem
-            chunkMap = (ConcurrentHashMap<String, Integer>) in.readObject();
+            chunkMap = (ConcurrentHashMap<String, Chunk>) in.readObject();
             in.close();
             fileIn.close();
         } catch (IOException i) {

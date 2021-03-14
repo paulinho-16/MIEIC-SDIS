@@ -1,5 +1,10 @@
 import java.io.*;
 import java.net.*;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class Peer {
     // Constructor parameters
@@ -9,9 +14,13 @@ public class Peer {
     // Ports
     private int mcPort, mdbPort, mdrPort;
     // Channels
-    private Channel controlChannel, backupChannel, restoreChannel;
+    private MulticastControlChannel controlChannel;
+    private MulticastDataRecovery backupChannel;
+    private MulticastDataChannel restoreChannel;
     // Paths
     private String chunksPath, personalFilesPath, restoredFilesPath;
+    // Protocol
+    private PeerProtocol peerProtocol;
     // Inicializing thead Pool executor as a scheluded
     static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(100);
 
@@ -31,19 +40,19 @@ public class Peer {
         this.mdrAddr = mdrAddr;
         this.mdrPort = mdrPort;
 
-        // Subsribed to all 3 multicast channels for the peer
+        // Subscribed to all 3 multicast channels for the peer
         // Initialize mc channel
-        controlChannel = new Channel(mcAddr, mcPort);
+        controlChannel = new MulticastControlChannel(mcAddr, mcPort,peerId);
         // Initialize mdb channel
-        backupChannel = new Channel(mdbAddr, mdbPort);
+        backupChannel = new MulticastDataRecovery(mdbAddr, mdbPort,peerId);
         // Initialize mdr channel
-        restoreChannel = new Channel(mdrAddr, mdrPort);
+        restoreChannel = new MulticastDataChannel(mdrAddr, mdrPort,peerId);
 
         // Using Registry. É assim que se faz para criar um registry quando se têm as funções noutra classe?
         try {
             // Create Remote Object (RMI)
-            PeerProtocol obj = new PeerProtocol();
-            PeerInterface stub = (PeerInterface) UnicastRemoteObject.exportObject(obj, 0);
+            this.peerProtocol = new PeerProtocol(version,peerId,controlChannel, backupChannel, restoreChannel);
+            PeerInterface stub = (PeerInterface) UnicastRemoteObject.exportObject(peerProtocol, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
@@ -66,6 +75,14 @@ public class Peer {
         createDirectory(chunksPath);
         createDirectory(personalFilesPath);
         createDirectory(restoredFilesPath);
+    }
+
+    public String getID() {
+        return peerId;
+    }
+
+    public PeerProtocol getProtocol() {
+        return peerProtocol;
     }
 
     private void createDirectory(String path) {

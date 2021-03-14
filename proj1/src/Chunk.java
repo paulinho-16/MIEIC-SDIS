@@ -1,5 +1,4 @@
-import java.io.*
-import java.util.HashSet
+import java.util.HashSet;
 
 class Chunk implements java.io.Serializable{
     private String fileId;

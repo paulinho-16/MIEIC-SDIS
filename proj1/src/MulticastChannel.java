@@ -1,17 +1,21 @@
-import java.io.*
-import java.net.*
+import java.io.IOException;
+import java.net.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-public class Channel implements Runnable {
+public class MulticastChannel implements Runnable {
     private final InetAddress addr;
     private final int port;
     private final DatagramSocket unicastSocket;
     private final MulticastSocket multicastSocket;
     protected ScheduledThreadPoolExecutor threads;
+    private final String peerID;
 
-    Channel(addr, port) {
+    MulticastChannel(InetAddress addr, int port, String peerID) throws IOException {
         this.addr = addr;
         this.port = port;
-        this.threads = Executors.newScheduledThreadPool(200);  // 200 available threads
+        this.peerID = peerID;
+        this.threads = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(200);  // 200 available threads
         this.unicastSocket = new DatagramSocket(port); // Qual socket usar para sendMessage??? Não devia ser o do MC channel?
         this.multicastSocket = new MulticastSocket(port);
         this.multicastSocket.joinGroup(this.addr);
@@ -29,7 +33,7 @@ public class Channel implements Runnable {
 
     @Override
     public void run() {
-        byte[] msgReceived = new byte[65507] // maximum data size for UDP packet -> https://en.wikipedia.org/wiki/User_Datagram_Protocol
+        byte[] msgReceived = new byte[65507]; // maximum data size for UDP packet -> https://en.wikipedia.org/wiki/User_Datagram_Protocol
 
         try {
             while(true) {
@@ -37,7 +41,7 @@ public class Channel implements Runnable {
                 DatagramPacket requestPacket = new DatagramPacket(msgReceived, msgReceived.length);
                 this.multicastSocket.receive(requestPacket);
 
-                Peer.executor.execute(new MessageHandler(requestPacket.getData()));
+                Peer.executor.execute(new MessageHandler(requestPacket.getData(), this.peerID));
             }
         } catch(Exception e) {
             e.printStackTrace();

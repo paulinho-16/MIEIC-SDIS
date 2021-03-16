@@ -8,7 +8,6 @@ import java.security.MessageDigest;
 public class MulticastChannel implements Runnable {
     protected final InetAddress addr;
     protected final int port;
-    protected final DatagramSocket unicastSocket;
     protected final MulticastSocket multicastSocket;
     protected ScheduledThreadPoolExecutor threads;
     protected final String peerID;
@@ -18,7 +17,7 @@ public class MulticastChannel implements Runnable {
         this.port = port;
         this.peerID = peerID;
         this.threads = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(200);  // 200 available threads
-        this.unicastSocket = new DatagramSocket(port); // Qual socket usar para sendMessage??? Não devia ser o do MC channel?
+        //this.unicastSocket = new DatagramSocket(port); // Qual socket usar para sendMessage??? Não devia ser o do MC channel?
         this.multicastSocket = new MulticastSocket(port);
         this.multicastSocket.joinGroup(this.addr);
     }
@@ -27,7 +26,7 @@ public class MulticastChannel implements Runnable {
     void sendMessage(byte[] message) {
         try {
             DatagramPacket packetSend = new DatagramPacket(message, message.length, this.addr, this.port);
-            unicastSocket.send(packetSend);
+            this.multicastSocket.send(packetSend);
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("Error sending message to Multicast Data Channel (MDB)");
@@ -43,7 +42,7 @@ public class MulticastChannel implements Runnable {
                 // Waiting to receive a packet
                 DatagramPacket requestPacket = new DatagramPacket(msgReceived, msgReceived.length);
                 this.multicastSocket.receive(requestPacket);
-
+                System.out.println("TAMANHO DATA: " + requestPacket.getData().length);
                 Peer.executor.execute(new MessageHandler(requestPacket.getData(), this.peerID));
             }
         } catch(Exception e) {

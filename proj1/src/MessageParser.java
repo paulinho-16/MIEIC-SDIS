@@ -1,4 +1,3 @@
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class MessageParser {
@@ -8,18 +7,17 @@ public class MessageParser {
 
     // Bytes
     private byte[] message; // Full Message
-    private byte[] body; // Body without the header (Unused yet)
+    private byte[] body; // Body without the header
 
     // Header Atributes (Optional and ordered)
-    private Double version;
-    private String messageType, senderID, fileID;
+    private String version, messageType, senderID, fileID;
     int chunkNo, replicationDeg;
 
     public MessageParser(byte[] message) {
         this.message = message;
     }
 
-    public Double getVersion() {
+    public String getVersion() {
         return version;
     }
 
@@ -62,6 +60,9 @@ public class MessageParser {
 
         // Get body from the message
         this.body = Arrays.copyOfRange(message, i+4, message.length);
+        byte[] temp = trimming(this.body);
+        System.out.println("BODY LENGTH: " + this.body.length);
+        System.out.println("TEMP LENGTH: " + temp.length);
 
         // Get header from the message
         String header = new String(Arrays.copyOfRange(message, 0, i));  // Get Header from the message
@@ -69,7 +70,7 @@ public class MessageParser {
 
         // Parse header parameters
         for(int j = 0; j < splitHeader.length;j++) {
-           if(j == 0) this.version = Double.parseDouble(splitHeader[0]);
+           if(j == 0) this.version = splitHeader[0];
            else if(j == 1) this.messageType = splitHeader[1];
            else if(j == 2) this.senderID = splitHeader[2];
            else if(j == 3) this.fileID = splitHeader[3];
@@ -89,4 +90,10 @@ public class MessageParser {
         System.arraycopy(body, 0, message, header.length, body.length);
         return message;
     }
+
+    public static byte[] makeHeader(String... headerString) {
+        return (String.join(" ", headerString) + CRLF + CRLF).getBytes();
+    }
+
+
 }

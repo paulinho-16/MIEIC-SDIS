@@ -15,11 +15,10 @@ public class MulticastDataChannel extends MulticastChannel {
         }
 
         // Creating new file if it doesn't exist
-        File file = createFile(path);
+        File file = new File(path);
 
         FileInputStream in = new FileInputStream(file);
 
-        System.out.println("Initializing");
         int chunkCount = 0;
         byte[] chunkData;
         int availableBytes;
@@ -31,21 +30,25 @@ public class MulticastDataChannel extends MulticastChannel {
 
         // While there are still bytes that can be read
         while((availableBytes = in.available()) > 0) {
+            System.out.println(availableBytes);
             // Reading the correct amount of bytes
             if(availableBytes > Peer.CHUNK_SIZE) {
+                System.out.println("NAO DEVIA ESTAR AQUI");
                 chunkData = new byte[Peer.CHUNK_SIZE];
             } else {
                 chunkData = new byte[availableBytes];
             }
+            System.out.println(availableBytes);
             in.read(chunkData);
-
+            System.out.println(chunkData.length);
             byte[] message =  MessageParser.makeMessage(chunkData, version, "PUTCHUNK", this.peerID , fileId, Integer.toString(chunkCount), Integer.toString(replicationDegree));
             // Verify if the peer contains
             Chunk chunk = Peer.getData().getBackupChunk(fileId, chunkCount);
             if (chunk == null) {
-                System.out.println("Sending PUTCHUNK for chunk number" + chunkCount);  // APAGAR
+                chunk = new Chunk(version, fileId, chunkCount, replicationDegree, chunkData);
+                System.out.println("Sending PUTCHUNK for chunk number " + chunkCount);  // APAGAR
                 Peer.getData().backupNewChunk(chunk);   // Objeto mantém-se?
-                Peer.executor.execute(new StoreChunkThread(message, chunk));
+                Peer.executor.execute(new PutChunkThread(message, fileId, chunkCount, replicationDegree));
             }
             chunkCount++;
         }
@@ -53,19 +56,5 @@ public class MulticastDataChannel extends MulticastChannel {
         // Caso em que file size é múltiplo de 64kb já está incluído no ciclo de cima? testar.
     }
 
-    public File createFile(String path) {
-        try{
-            File myObj = new File(path);
-            if (myObj.createNewFile()) {
-                System.out.println("File created: " + path);
-                return myObj;
-            } else {
-                System.out.println("File already exists.");
-            }
-        }catch(Exception e){
-            System.out.println("Error on creating file: " + path);
-            e.printStackTrace();
-        }
-        return null;
-    }
+
 }

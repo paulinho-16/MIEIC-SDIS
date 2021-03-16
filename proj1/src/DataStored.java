@@ -1,4 +1,4 @@
-import java.io.Serializable;
+import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class DataStored implements Serializable {
@@ -6,7 +6,8 @@ public class DataStored implements Serializable {
     private int occupiedSpace;
 
     // Armazena-se files ou chunks?????
-    private final ConcurrentHashMap<String, FileData> backupFiles = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, FileData> backupFiles = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Chunk> backupChunks = new ConcurrentHashMap<>();
 
     public DataStored() {
         this.occupiedSpace = 0;
@@ -14,30 +15,76 @@ public class DataStored implements Serializable {
 
     // Add a new file to the list of backed up files of the peer
     public void backupNewFile(FileData fileData) {
-        if (!this.backupFiles.containsKey(fileData.getFileID()))
+        if (!this.backupFiles.containsKey(fileData.getFileID())) {
             this.backupFiles.put(fileData.getFileID(), fileData);
+        }
     }
 
     // Add a new chunk to the list of backed up chunks of a given file
     public void backupNewChunk(Chunk chunk) {
-        if (!this.backupFiles.containsKey(chunk.getFileID()))
+        System.out.println(chunk.getFileID());
+        System.out.println(this.backupFiles.isEmpty());
+
+        if (!this.backupFiles.containsKey(chunk.getFileID())) {
             return; // File is not in the list of backed up files of the peer
+        }
         FileData file = this.backupFiles.get(chunk.getFileID());
-        if (!file.hasChunkBackup(chunk.getChunkNumber()))
+        if (!file.hasChunkBackup(chunk.getChunkNumber())) {
             file.addChunkBackup(chunk);
+        }
     }
 
     // Return the backed up chunk if exists, return null otherwise
     public Chunk getBackupChunk(String fileID, int chunkNumber) {
-        if (this.backupFiles.containsKey(fileID))
+
+        if (!this.backupFiles.containsKey(fileID))
             return null;
+
         FileData file = this.backupFiles.get(fileID);
-        if (file.hasChunkBackup(chunkNumber))
+
+        if (!file.hasChunkBackup(chunkNumber))
             return null;
         return file.getChunkBackup(chunkNumber);
     }
 
     public void storeNewChunk(Chunk chunk) {
+        // Verificar se espaço disponível é suficiente para armazenar o ficheiro!!!
 
+        String key = chunk.getFileID() + "/" + chunk.getChunkNumber();
+
+        // If chunk is already backed up, do nothing
+        if (backupChunks.containsKey(key)) {
+            return;
+        }
+
+        Peer.getMCChannel().sendStoreMsg(chunk);
+
+        String path = Peer.DIRECTORY + Peer.getPeerID() + "/chunks/" + chunk.getFileID() + "-" + chunk.getChunkNumber();
+
+        // Falta o path
+        try{
+            File file = createFile(path);
+            FileOutputStream fout = new FileOutputStream(file);
+            fout.write(chunk.getData());
+            fout.close();
+        }catch(IOException e){
+            System.out.println("Error on writing chunk to a file");
+        }
+    }
+
+    public File createFile(String path) {
+        try{
+            File myObj = new File(path);
+            if (myObj.createNewFile()) {
+                System.out.println("File created: " + path);
+                return myObj;
+            } else {
+                System.out.println("File already exists.");
+            }
+        }catch(Exception e){
+            System.out.println("Error on creating file: " + path);
+            e.printStackTrace();
+        }
+        return null;
     }
 }

@@ -52,7 +52,7 @@ public class MessageHandler implements Runnable {
         Random delay = new Random();
         Peer.executor.schedule(new Thread(() -> {
             // Que parámetros serão precisos??? version e senderID??
-            Chunk chunk = new Chunk(this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getRepDegree(), this.messageParser.getBody());
+            Chunk chunk = new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getRepDegree(), this.messageParser.getBody());
             Peer.getData().storeNewChunk(chunk);
             }), delay.nextInt(401), TimeUnit.MILLISECONDS
         );

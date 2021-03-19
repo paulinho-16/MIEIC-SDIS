@@ -1,8 +1,10 @@
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -20,6 +22,7 @@ public class Peer {
     private static MulticastDataRecovery restoreChannel;
     // Paths
     private String chunksPath, personalFilesPath, restoredFilesPath;
+    private static String serializationPath = "Serialization/" + peerID + ".ser ";
     // Protocol
     private PeerProtocol peerProtocol;
     // Peer stored data
@@ -82,6 +85,13 @@ public class Peer {
         createDirectory(chunksPath);
         createDirectory(personalFilesPath);
         createDirectory(restoredFilesPath);
+
+        /*
+        // Reads the serialized data from the peer
+        loadChunks();
+        // Ensures data is serialized before the application shuts down
+        Runtime.getRuntime().addShutdownHook(new Thread(Peer::saveChunks));
+        */
     }
 
     public static String getPeerID() {
@@ -107,12 +117,47 @@ public class Peer {
 
     private void createDirectory(String path) {
         File fileData = new File(path);
+        fileData.mkdirs();
+    }
 
-        //Creating the directory
-        if (fileData.mkdirs()) {
-            System.out.println("Successfully created directory: " + path);
-        } else {
-            System.out.println("Failed to create directory with path: " + path);
+    // Synchronized? Vários gits têm isto, o que faz sentido tendo em conta o uso de threads (verificar mais tarde)
+    public static void saveChunks() {
+        try {
+            DataStored.createFile(serializationPath);
+            // Este path ainda não está bem, é preciso atribuir um diretório correto mais tarde
+            FileOutputStream fileOut = new FileOutputStream(serializationPath);
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            // Deve-se escrever todos os objetos que se deseja, neste caso ainda só temos um chunkMap
+            out.writeObject(data);
+            out.close();
+            fileOut.close();
+            System.out.println("Serialized data is saved in " + serializationPath);
+        } catch (IOException i) {
+            i.printStackTrace();
+            System.out.println("Unable to save state in path:" + serializationPath);
         }
+        System.out.println("Serialized data");
+    }
+
+    public static void loadChunks(){
+        try {
+            File file = new File(serializationPath);
+            if(!file.exists()) return;
+            // ESte path ainda não está bem, é preciso atribuir um diretório correto mais tarde
+            FileInputStream fileIn = new FileInputStream(serializationPath);
+            ObjectInputStream in = new ObjectInputStream(fileIn);
+            // Se depois houver mais estruturas de dados, é preciso lê-las na mesma ordem que se escrevem
+            data = (DataStored) in.readObject();
+            in.close();
+            fileIn.close();
+        } catch (IOException i) {
+            i.printStackTrace();
+            return;
+        } catch (ClassNotFoundException c) {
+            System.out.println("Class not found");
+            c.printStackTrace();
+            return;
+        }
+        System.out.println("Deserialized data...");
     }
 }

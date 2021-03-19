@@ -23,30 +23,25 @@ public class MulticastDataChannel extends MulticastChannel {
         byte[] chunkData;
         int availableBytes;
         String fileId = this.createId(path, this.peerID);
-        System.out.println("FILE ID after SHA256: " + fileId);
 
         // Add the file to the peer's list of backed up files
         Peer.getData().backupNewFile(new FileData(path, fileId, replicationDegree));
 
         // While there are still bytes that can be read
         while((availableBytes = in.available()) > 0) {
-            System.out.println(availableBytes);
             // Reading the correct amount of bytes
             if(availableBytes > Peer.CHUNK_SIZE) {
-                System.out.println("NAO DEVIA ESTAR AQUI");
                 chunkData = new byte[Peer.CHUNK_SIZE];
             } else {
                 chunkData = new byte[availableBytes];
             }
-            System.out.println(availableBytes);
             in.read(chunkData);
-            System.out.println(chunkData.length);
             byte[] message =  MessageParser.makeMessage(chunkData, version, "PUTCHUNK", this.peerID , fileId, Integer.toString(chunkCount), Integer.toString(replicationDegree));
             // Verify if the peer contains
             Chunk chunk = Peer.getData().getBackupChunk(fileId, chunkCount);
             if (chunk == null) {
-                chunk = new Chunk(version, fileId, chunkCount, replicationDegree, chunkData);
-                System.out.println("Sending PUTCHUNK for chunk number " + chunkCount);  // APAGAR
+                chunk = new Chunk(version, fileId, chunkCount, chunkData);
+                System.out.println("MDB sending :: PUTCHUNK chunk " + chunkCount + " Sender " + this.peerID);
                 Peer.getData().backupNewChunk(chunk);   // Objeto mantém-se?
                 Peer.executor.execute(new PutChunkThread(message, fileId, chunkCount, replicationDegree));
             }

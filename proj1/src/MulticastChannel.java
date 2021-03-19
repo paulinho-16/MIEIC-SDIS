@@ -42,7 +42,6 @@ public class MulticastChannel implements Runnable {
                 // Waiting to receive a packet
                 DatagramPacket requestPacket = new DatagramPacket(msgReceived, msgReceived.length);
                 this.multicastSocket.receive(requestPacket);
-                System.out.println("TAMANHO DATA: " + requestPacket.getData().length);
                 Peer.executor.execute(new MessageHandler(requestPacket.getData(), this.peerID));
             }
         } catch(Exception e) {

@@ -4,34 +4,21 @@ import java.util.concurrent.CopyOnWriteArrayList;
 class Chunk implements java.io.Serializable{
     private String fileId;
     private int chunkNumber;
-    private int replicationDegree = 1;
     private byte[] body;
-    private HashSet<Integer> peersWithChunk = new HashSet<>();
     private String version;
 
     // https://howtodoinjava.com/java/collections/java-copyonwritearraylist/
     private CopyOnWriteArrayList<String> backupPeers = new CopyOnWriteArrayList<>();
 
-    public Chunk(String fileId, int chunkNumber) {
-        this.fileId = fileId;
-        this.chunkNumber = chunkNumber;
-    }
-
-    public Chunk(String version, String fileId, int chunkNumber, int replicationDegree, byte[] body) {
+    public Chunk(String version, String fileId, int chunkNumber, byte[] body) {
         this.version = version;
         this.fileId = fileId;
         this.chunkNumber = chunkNumber;
-        this.replicationDegree = replicationDegree;
         this.body = body;
-        System.out.println(this.body.length);
     }
 
     public byte[] getData() {
         return body;
-    }
-
-    public int getReplicationDegree() {
-        return peersWithChunk.size();   // Variável replicationDegree?
     }
 
     public String getVersion() {
@@ -52,5 +39,13 @@ class Chunk implements java.io.Serializable{
 
     public int getNumReplications() {
         return this.backupPeers.size();
+    }
+
+    public boolean isPeerBackingUp(String senderID) {
+        return backupPeers.contains(senderID);
+    }
+
+    public void addPeerBackingUp(String peerID) {
+        this.backupPeers.add(peerID);
     }
 }

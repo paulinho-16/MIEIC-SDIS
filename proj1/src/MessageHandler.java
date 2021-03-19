@@ -48,18 +48,19 @@ public class MessageHandler implements Runnable {
     }
 
     private void handlePUTCHUNK() {
-        System.out.println("Received PUTCHUNK message");
+        System.out.println("MessageHandler receiving :: PUTCHUNK chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
         Random delay = new Random();
         Peer.executor.schedule(new Thread(() -> {
             // Que parámetros serão precisos??? version e senderID??
-            Chunk chunk = new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getRepDegree(), this.messageParser.getBody());
+            Chunk chunk = new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getBody());
             Peer.getData().storeNewChunk(chunk);
             }), delay.nextInt(401), TimeUnit.MILLISECONDS
         );
     }
 
     private void handleSTORED() {
-        System.out.println("Received STORED message");
+        System.out.println("MessageHandler receiving :: STORED chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
+        Peer.getData().updateChunkReplicationsNum(this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getSenderID());
     }
 
     private void handleGETCHUNK() {

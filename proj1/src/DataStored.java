@@ -22,9 +22,6 @@ public class DataStored implements Serializable {
 
     // Add a new chunk to the list of backed up chunks of a given file
     public void backupNewChunk(Chunk chunk) {
-        System.out.println(chunk.getFileID());
-        System.out.println(this.backupFiles.isEmpty());
-
         if (!this.backupFiles.containsKey(chunk.getFileID())) {
             return; // File is not in the list of backed up files of the peer
         }
@@ -50,11 +47,15 @@ public class DataStored implements Serializable {
     public void storeNewChunk(Chunk chunk) {
         // Verificar se espaço disponível é suficiente para armazenar o ficheiro!!!
 
-        String key = chunk.getFileID() + "/" + chunk.getChunkNumber();
-
+        //String key = chunk.getFileID() + "/" + chunk.getChunkNumber();
         // If chunk is already backed up, do nothing
-        if (backupChunks.containsKey(key)) {
+        /*if (backupChunks.containsKey(key)) {
             return;
+        }*/
+        if (this.backupFiles.containsKey(chunk.getFileID())) {
+            FileData file = this.backupFiles.get(chunk.getFileID());
+            if (file.hasChunkBackup(chunk.getChunkNumber()))
+                return;
         }
 
         Peer.getMCChannel().sendStoreMsg(chunk);
@@ -72,14 +73,30 @@ public class DataStored implements Serializable {
         }
     }
 
-    public File createFile(String path) {
+    public void updateChunkReplicationsNum(String fileID, int chunkNo, String senderID) {
+        // If the sender of the message is not registered as a Peer backing the chunk, register it
+        if (this.backupFiles.containsKey(fileID)) {
+            FileData file = this.backupFiles.get(fileID);
+            if (file.hasChunkBackup(chunkNo)) {
+                Chunk chunk = file.getChunkBackup(chunkNo);
+                if (!chunk.isPeerBackingUp(senderID)) {
+                    chunk.addPeerBackingUp(senderID);
+                }
+            }
+        }
+        else {     // If the file is not contained
+            //this.backupFiles.put(fileID, new FileData());
+        }
+    }
+
+    public static File createFile(String path) {
         try{
             File myObj = new File(path);
             if (myObj.createNewFile()) {
-                System.out.println("File created: " + path);
+                //System.out.println("File created: " + path);
                 return myObj;
             } else {
-                System.out.println("File already exists.");
+                //System.out.println("File already exists.");
             }
         }catch(Exception e){
             System.out.println("Error on creating file: " + path);
@@ -87,4 +104,6 @@ public class DataStored implements Serializable {
         }
         return null;
     }
+
+
 }

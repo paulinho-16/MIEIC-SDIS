@@ -7,6 +7,6 @@ cd ..
 echo "Starting Test Application..."
 
 #TestApp
-java TestApp Peer1 BACKUP TestApp/Ficha_de_TrabalhoPPI_-_Estudantes.pdf
+java TestApp Peer1 BACKUP TestApp/Ficha_de_TrabalhoPPI_-_Estudantes.pdf 1
 
 echo "Launched TestApp"

@@ -59,10 +59,8 @@ public class MessageParser {
         }
 
         // Get body from the message
-        this.body = Arrays.copyOfRange(message, i+4, message.length);
-        byte[] temp = trimming(this.body);
-        System.out.println("BODY LENGTH: " + this.body.length);
-        System.out.println("TEMP LENGTH: " + temp.length);
+        byte[] temp = Arrays.copyOfRange(message, i+4, message.length);
+        this.body = trimming(temp);
 
         // Get header from the message
         String header = new String(Arrays.copyOfRange(message, 0, i));  // Get Header from the message
@@ -95,5 +93,13 @@ public class MessageParser {
         return (String.join(" ", headerString) + CRLF + CRLF).getBytes();
     }
 
+    public static byte[] trimming(byte[] input){
+        int i = input.length;
+        while(i-- > 0 && input[i] == 0) {}
 
+        byte[] output = new byte[i+1];
+        System.arraycopy(input,0,output,0,i+1);
+
+        return output;
+    }
 }

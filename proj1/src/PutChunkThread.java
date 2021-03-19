@@ -1,4 +1,3 @@
-import java.net.SocketException;
 import java.util.concurrent.TimeUnit;
 
 public class PutChunkThread implements Runnable {
@@ -20,13 +19,11 @@ public class PutChunkThread implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("ENTROU NA STORE CHUNK THREAD");
-        System.out.println("FILE REPDEG: " + replicationDegree);
-        System.out.println("CHUNK REPDEG: " + Peer.getData().getBackupChunk(fileID, chunkNumber).getNumReplications());
+        System.out.println("Entrou PUTCHUNK thread - CHUNK " + chunkNumber);
         int numReplications = Peer.getData().getBackupChunk(fileID, chunkNumber).getNumReplications();
+        //System.out.println("NumReplications: " + numReplications + "    numResend: " + numResends + " REPDEG " + replicationDegree + " Chunk " + chunkNumber + " DELAY " + delay);
         // The number of chunk replications is lower than the desired replication degree: resend PUTCHUNK message
         if (numReplications < replicationDegree) {
-            System.out.println("Entered If");
             // Verificar se mandamos para o channel errado
             Peer.executor.execute(new Thread(() ->
                 Peer.getMDBChannel().sendMessage(message)
@@ -42,7 +39,7 @@ public class PutChunkThread implements Runnable {
             delay *= 2;
         }
         else {
-            System.out.println("Replication Degree fulfilled");
+            System.out.println("Fulfilled replication Degree for chunk " + chunkNumber);
         }
 
         // E no caso de receber 2 mensagens do mesmo peer? Contador soma 2 vezes...

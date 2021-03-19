@@ -1,6 +1,5 @@
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -10,7 +9,8 @@ public class MulticastControlChannel extends MulticastChannel {
     }
 
     public void sendStoreMsg(Chunk chunk) {
-        System.out.println("Sending STORE message");
+        System.out.println("MC sending :: STORED chunk " + chunk.getChunkNumber() + " Sender " + this.peerID);
+
         byte[] message =  MessageParser.makeHeader(chunk.getVersion(), "STORED", this.peerID , chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
         Random random = new Random();
         this.threads.schedule(new Thread(() ->

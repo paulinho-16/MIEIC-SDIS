@@ -72,10 +72,14 @@ public class MessageHandler implements Runnable {
     }
 
     private void handleDELETE() {
-        System.out.println("Received DELETE message");
+        System.out.println("MessageHandler receiving :: DELETE chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
+
+        if (!Peer.getData().deleteFileChunks(this.messageParser.getFileID())) {
+            System.out.println("Error on operation DELETE");
+        }
     }
 
     private void handleREMOVED() {
-        System.out.println("Received REMOVED message");
+        System.out.println("MessageHandler receiving :: REMOVED chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
     }
 }

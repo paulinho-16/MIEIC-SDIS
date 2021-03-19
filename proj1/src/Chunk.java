@@ -1,5 +1,5 @@
-import java.util.HashSet;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.io.File;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 class Chunk implements java.io.Serializable{
     private String fileId;
@@ -8,7 +8,7 @@ class Chunk implements java.io.Serializable{
     private String version;
 
     // https://howtodoinjava.com/java/collections/java-copyonwritearraylist/
-    private CopyOnWriteArrayList<String> backupPeers = new CopyOnWriteArrayList<>();
+    private CopyOnWriteArraySet<String> backupPeers = new CopyOnWriteArraySet<>();
 
     public Chunk(String version, String fileId, int chunkNumber, byte[] body) {
         this.version = version;
@@ -47,5 +47,14 @@ class Chunk implements java.io.Serializable{
 
     public void addPeerBackingUp(String peerID) {
         this.backupPeers.add(peerID);
+    }
+
+    public CopyOnWriteArraySet<String> getPeersBackingUp() {
+        return backupPeers;
+    }
+
+    public boolean delete() {
+        File file = new File(Peer.DIRECTORY + Peer.getPeerID() + "/chunks/" + fileId + "-" + chunkNumber);
+        return file.delete();
     }
 }

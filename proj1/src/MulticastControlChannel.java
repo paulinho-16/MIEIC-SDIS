@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Random;
@@ -20,10 +21,26 @@ public class MulticastControlChannel extends MulticastChannel {
     }
 
     public void restore(String path) {
-        // TO DO
+        // TODO
     }
 
-    public void delete(String path) {
-        // TO DO
+    public void delete(String version, String path) {
+
+        if(path == null) {
+            throw new IllegalArgumentException("Invalid filepath");
+        }
+
+        File file = new File(path);
+        String fileID = this.createId(this.peerID, path, file.lastModified());
+        Peer.getData().deleteFileFromMap(fileID);
+
+        System.out.println("MC sending :: DELETE Sender " + this.peerID + " file " + fileID);
+
+        byte[] message =  MessageParser.makeHeader(version, "DELETE", this.peerID , fileID);
+        Random random = new Random();
+        this.threads.schedule(new Thread(() ->
+                        this.sendMessage(message)),
+                random.nextInt(401), TimeUnit.MILLISECONDS
+        );
     }
 }

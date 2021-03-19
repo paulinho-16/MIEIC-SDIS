@@ -1,12 +1,14 @@
 import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class FileData implements Serializable {
     private String path;
     private String fileID;
     private int replicationDegree;
 
-    private ConcurrentHashMap<Integer, Chunk> backupChunks = new ConcurrentHashMap<>();
+    // ConcurrentHashMap<ChunkNo, repDegree>
+    private ConcurrentHashMap<Integer, CopyOnWriteArraySet<String>> backupChunks = new ConcurrentHashMap<>();
 
     public FileData(String path, String fileID, int replicationDegree) {
         this.path = path;
@@ -30,48 +32,35 @@ public class FileData implements Serializable {
         return backupChunks.containsKey(chunkNumber);
     }
 
-    public void addChunkBackup(Chunk chunk) {
-        this.backupChunks.put(chunk.getChunkNumber(), chunk);
+    public void addChunk(int chunkNumber) {
+        backupChunks.put(chunkNumber, new CopyOnWriteArraySet<>());
+    }
+
+    public void addPeerBackingUp(int chunkNumber, String peerID) {
+        CopyOnWriteArraySet<String> peersBackingUp = this.backupChunks.get(chunkNumber);
+        peersBackingUp.add(peerID);
+        this.backupChunks.put(chunkNumber, peersBackingUp);
+    }
+
+    public int getChunkReplicationNum(int chunkNumber) {
+        return backupChunks.get(chunkNumber).size();
+    }
+
+    public int getBackupChunksSize() {
+        return backupChunks.size();
     }
 
     public Chunk getChunkBackup(int chunkNumber) {
-        return this.backupChunks.get(chunkNumber);
+        //return this.backupChunks.get(chunkNumber);
+        return null;
     }
 
-    private synchronized void saveChunks() {
-        try {
-            // Este path ainda não está bem, é preciso atribuir um diretório correto mais tarde
-            FileOutputStream fileOut = new FileOutputStream(path);
-            ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            // Deve-se escrever todos os objetos que se deseja, neste caso ainda só temos um chunkMap
-            out.writeObject(backupChunks);
-            out.close();
-            fileOut.close();
-            System.out.println("Serialized data is saved in " + path);
-        } catch (IOException i) {
-            i.printStackTrace();
-            System.out.println("Unable to save state in path:" + path);
-        }
-        System.out.println("Serialized chunkMap");
+    public ConcurrentHashMap<Integer, Chunk> getBackupChunks() {
+        //return this.backupChunks;
+        return null;
     }
 
-    private void loadChunks() {
-        try {
-            // ESte path ainda não está bem, é preciso atribuir um diretório correto mais tarde
-            FileInputStream fileIn = new FileInputStream(path);
-            ObjectInputStream in = new ObjectInputStream(fileIn);
-            // Se depois houver mais estruturas de dados, é preciso lê-las na mesma ordem que se escrevem
-            backupChunks = (ConcurrentHashMap<Integer, Chunk>) in.readObject();
-            in.close();
-            fileIn.close();
-        } catch (IOException i) {
-            i.printStackTrace();
-            return;
-        } catch (ClassNotFoundException c) {
-            System.out.println("Class not found");
-            c.printStackTrace();
-            return;
-        }
-        System.out.println("Deserialized chunkMap...");
+    void removeBackupChunks(){
+
     }
 }

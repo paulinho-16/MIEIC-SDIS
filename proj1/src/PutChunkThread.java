@@ -20,8 +20,10 @@ public class PutChunkThread implements Runnable {
     @Override
     public void run() {
         System.out.println("Entrou PUTCHUNK thread - CHUNK " + chunkNumber);
-        int numReplications = Peer.getData().getBackupChunk(fileID, chunkNumber).getNumReplications();
-        //System.out.println("NumReplications: " + numReplications + "    numResend: " + numResends + " REPDEG " + replicationDegree + " Chunk " + chunkNumber + " DELAY " + delay);
+        FileData file = Peer.getData().getFileData(fileID);
+        System.out.println("FILEDATA: " + file.getFileID() + "   BACKUPSIZE: " + file.getBackupChunksSize());
+        int numReplications = file.getChunkReplicationNum(chunkNumber);
+        System.out.println("NumReplications: " + numReplications + "    numResend: " + numResends + " REPDEG " + replicationDegree + " Chunk " + chunkNumber + " DELAY " + delay);
         // The number of chunk replications is lower than the desired replication degree: resend PUTCHUNK message
         if (numReplications < replicationDegree) {
             // Verificar se mandamos para o channel errado

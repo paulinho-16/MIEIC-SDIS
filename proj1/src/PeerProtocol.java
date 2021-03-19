@@ -37,7 +37,8 @@ public class PeerProtocol implements PeerInterface {
 
     @Override
     public void delete(String filepath) {
-        executor.execute(new Thread(() -> mc.delete(filepath)));
+        System.out.println("Request: Delete");
+        executor.execute(new Thread(() -> mc.delete(version, filepath)));
     }
 
     @Override

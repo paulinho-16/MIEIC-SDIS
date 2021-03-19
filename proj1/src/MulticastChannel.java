@@ -54,8 +54,8 @@ public class MulticastChannel implements Runnable {
         // TODO
     }
 
-    protected String createId(String filename, String peerID){
-        return sha256(filename + "//" + peerID);
+    protected String createId(String peerID, String filename, long dateModified) {
+        return sha256(peerID + "//" + filename + "//" + dateModified);
     }
 
     public static String sha256(String base) {

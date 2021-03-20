@@ -1,4 +1,7 @@
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Enumeration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -62,5 +65,9 @@ public class FileData implements Serializable {
 
     void removeBackupChunks(){
 
+    }
+
+    Enumeration<Integer> getChunkNumbers() {
+        return backupChunks.keys();
     }
 }

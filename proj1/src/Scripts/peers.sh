@@ -3,7 +3,6 @@
 # Setting current directory
 cd ..
 
-
 # Compile
 javac *.java
 

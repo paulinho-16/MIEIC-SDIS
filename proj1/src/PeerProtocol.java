@@ -32,6 +32,7 @@ public class PeerProtocol implements PeerInterface {
 
     @Override
     public void restore(String filepath) {
+        System.out.println("Request: Restore");
         executor.execute(new Thread(() -> mc.restore(filepath)));
     }
 

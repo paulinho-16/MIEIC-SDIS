@@ -64,7 +64,11 @@ public class MessageHandler implements Runnable {
     }
 
     private void handleGETCHUNK() {
-        System.out.println("Received GETCHUNK message");
+        System.out.println("MessageHandler receiving :: GETCHUNK chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
+        Random delay = new Random();
+        Peer.getMDRChannel().threads.schedule(new Thread(() ->
+            new ChunkThread(this.messageParser.getSenderID(), this.messageParser.getFileID(), this.messageParser.getChunkNo())), delay.nextInt(401), TimeUnit.MILLISECONDS
+        );
     }
 
     private void handleCHUNK() {

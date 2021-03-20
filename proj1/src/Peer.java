@@ -112,6 +112,10 @@ public class Peer {
         return backupChannel;
     }
 
+    public static MulticastDataRecovery getMDRChannel() {
+        return restoreChannel;
+    }
+
     private void createDirectory(String path) {
         File fileData = new File(path);
         fileData.mkdirs();

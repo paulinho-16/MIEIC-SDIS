@@ -1,5 +1,7 @@
 import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class DataStored implements Serializable {
     private int totalSpace;
@@ -8,9 +10,22 @@ public class DataStored implements Serializable {
     // Armazena-se files ou chunks?????
     private ConcurrentHashMap<String, FileData> personalBackedUpFiles = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Chunk> backupChunks = new ConcurrentHashMap<>();
+    private CopyOnWriteArraySet<String> receivedChunks = new CopyOnWriteArraySet<>();
 
     public DataStored() {
         this.occupiedSpace = 0;
+    }
+
+    public boolean hasFileData(String fileID) {
+        return personalBackedUpFiles.containsKey(fileID);
+    }
+
+    public boolean hasReceivedChunk(String chunkID) {
+        return receivedChunks.contains(chunkID);
+    }
+
+    public boolean hasChunkBackup(String chunkID) {
+        return receivedChunks.contains(chunkID);
     }
 
     public FileData getFileData(String fileID) {
@@ -39,7 +54,7 @@ public class DataStored implements Serializable {
     }
 
     // Return the backed up chunk if exists, return null otherwise
-    public Chunk getBackupChunk(String fileID, int chunkNumber) {
+    public Chunk getChunkBackup(String chunkID) {
         /*if (!this.backupFiles.containsKey(fileID))
             return null;
 
@@ -55,7 +70,8 @@ public class DataStored implements Serializable {
 
             return null;
         }*/
-        return null;
+
+        return backupChunks.get(chunkID);
     }
 
     public void storeNewChunk(Chunk chunk) {
@@ -151,6 +167,10 @@ public class DataStored implements Serializable {
         }*/
 
        return true;
+    }
+
+    public void addReceivedChunk(String chunkID) {
+        receivedChunks.add(chunkID);
     }
 
     public static File createFile(String path) {

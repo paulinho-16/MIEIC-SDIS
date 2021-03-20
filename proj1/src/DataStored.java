@@ -1,6 +1,5 @@
 import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public class DataStored implements Serializable {
@@ -10,7 +9,8 @@ public class DataStored implements Serializable {
     // Armazena-se files ou chunks?????
     private ConcurrentHashMap<String, FileData> personalBackedUpFiles = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Chunk> backupChunks = new ConcurrentHashMap<>();
-    private CopyOnWriteArraySet<String> receivedChunks = new CopyOnWriteArraySet<>();
+    private CopyOnWriteArraySet<String> waitingChunks = new CopyOnWriteArraySet<>();
+    private ConcurrentHashMap<String, Chunk> receivedChunks = new ConcurrentHashMap<>();
 
     public DataStored() {
         this.occupiedSpace = 0;
@@ -20,16 +20,40 @@ public class DataStored implements Serializable {
         return personalBackedUpFiles.containsKey(fileID);
     }
 
-    public boolean hasReceivedChunk(String chunkID) {
-        return receivedChunks.contains(chunkID);
+    public boolean hasChunkBackup(String chunkID) {
+        return backupChunks.containsKey(chunkID);
     }
 
-    public boolean hasChunkBackup(String chunkID) {
-        return receivedChunks.contains(chunkID);
+    public boolean hasWaitingChunk(String chunkID) {
+        return waitingChunks.contains(chunkID);
+    }
+
+    public boolean hasReceivedChunk(String chunkID) {
+        return receivedChunks.containsKey(chunkID);
     }
 
     public FileData getFileData(String fileID) {
         return personalBackedUpFiles.get(fileID);
+    }
+
+    public Chunk getReceivedChunk(String chunkID) {
+        return receivedChunks.get(chunkID);
+    }
+
+    public void addWaitingChunk(String chunkID) {
+        waitingChunks.add(chunkID);
+    }
+
+    public void addReceivedChunk(Chunk chunk) {
+        receivedChunks.put(chunk.getID(), chunk);
+    }
+
+    public void removeWaitingChunk(String chunkID) {
+        waitingChunks.remove(chunkID);
+    }
+
+    public void removeReceivedChunk(String chunkID) {
+        receivedChunks.remove(chunkID);
     }
 
     // Add a new file to the list of personal backed up files of the peer
@@ -82,7 +106,7 @@ public class DataStored implements Serializable {
         /*if (backupChunks.containsKey(key)) {
             return;
         }*/
-        String key = chunk.getFileID() + "/" + chunk.getChunkNumber();
+        String key = chunk.getFileID() + "-" + chunk.getChunkNumber();
         if (this.backupChunks.containsKey(key))
             return;
 
@@ -169,10 +193,6 @@ public class DataStored implements Serializable {
        return true;
     }
 
-    public void addReceivedChunk(String chunkID) {
-        receivedChunks.add(chunkID);
-    }
-
     public static File createFile(String path) {
         try{
             File myObj = new File(path);
@@ -188,4 +208,6 @@ public class DataStored implements Serializable {
         }
         return null;
     }
+
+
 }

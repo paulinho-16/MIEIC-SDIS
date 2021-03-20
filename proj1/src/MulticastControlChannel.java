@@ -38,6 +38,7 @@ public class MulticastControlChannel extends MulticastChannel {
         FileData fileData = Peer.getData().getFileData(fileID);
 
         Enumeration<Integer> chunkNumbers = fileData.getChunkNumbers();
+        int numberChunks = 0;
 
         while(chunkNumbers.hasMoreElements()) {
             Integer chunkNumber = chunkNumbers.nextElement();
@@ -46,15 +47,17 @@ public class MulticastControlChannel extends MulticastChannel {
             byte[] message =  MessageParser.makeHeader("1.0", "GETCHUNK", peerID , fileID, Integer.toString(chunkNumber));
 
             String chunkID = fileID + "-" + chunkNumber;
-            Peer.getData().addReceivedChunk(chunkID);
+            Peer.getData().addWaitingChunk(chunkID);
 
             threads.execute(new Thread(() -> sendMessage(message)));
+            numberChunks++;
 
             System.out.println("MC sending :: GETCHUNK Sender " + peerID + " file "+ fileID + "chunk " + chunkNumber);
         }
 
         // Meter delay???
-        Peer.executor.execute(new GetChunkThread(path, fileID, peerID, chunkNumbers));
+        //Peer.executor.execute(new GetChunkThread(path, fileID, peerID, numberChunks));
+        Peer.executor.schedule(new GetChunkThread(path, fileID, peerID, numberChunks), 10, TimeUnit.SECONDS);
     }
 
         public void delete(String version, String path) {

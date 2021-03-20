@@ -1,4 +1,6 @@
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class GetChunkThread implements Runnable {
     String path, fileID, senderID;
@@ -11,9 +13,11 @@ public class GetChunkThread implements Runnable {
         this.numberChunks = numberChunks;
     }
 
+    // https://stackoverflow.com/questions/4545937/java-splitting-the-filename-into-a-base-and-extension
     public String makeCopyName() {
         String[] tokens = path.split("\\.(?=[^\\.]+$)");
-        String baseName = tokens[0];
+        String[] pathLevels = tokens[0].split(".+?/(?=[^/]+$)");
+        String baseName = pathLevels[1];
         String extension = tokens[1];
 
         return baseName + "_copy." + extension;
@@ -24,8 +28,30 @@ public class GetChunkThread implements Runnable {
         String fileCopy = makeCopyName();
         String copyPath = "peers/" + Peer.getPeerID() + "/restored_files/" + fileCopy;
 
-        File file = new File(copyPath);
+        //File file = new File(copyPath);
+        Peer.getData().createFile(copyPath);
+        // Modifies file if it already exists
+        //if (file.exists())
+            //file.delete();
 
-        // TODO
+        for (int i = 0; i < numberChunks; i++) {
+            String chunkID = fileID + "-" + i;
+            if(!Peer.getData().hasReceivedChunk(chunkID)) {
+                System.out.println("Error: Chunk number " + i + " missing.");
+                return;
+            }
+            Chunk chunk = Peer.getData().getReceivedChunk(chunkID);
+            Peer.getData().removeReceivedChunk(chunkID);
+
+            try {
+                FileOutputStream fout = new FileOutputStream(copyPath,true);
+                fout.write(chunk.getData());
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Error creating file: " + copyPath);
+            }
+        }
+
+        System.out.println("File recovered: " + fileCopy);
     }
 }

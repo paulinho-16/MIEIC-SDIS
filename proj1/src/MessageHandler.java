@@ -66,13 +66,17 @@ public class MessageHandler implements Runnable {
     private void handleGETCHUNK() {
         System.out.println("MessageHandler receiving :: GETCHUNK chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
         Random delay = new Random();
-        Peer.getMDRChannel().threads.schedule(new Thread(() ->
-            new ChunkThread(this.messageParser.getSenderID(), this.messageParser.getFileID(), this.messageParser.getChunkNo())), delay.nextInt(401), TimeUnit.MILLISECONDS
-        );
+        ChunkThread chunkThread = new ChunkThread(this.messageParser.getSenderID(), this.messageParser.getFileID(), this.messageParser.getChunkNo());
+        Peer.getMDRChannel().threads.schedule(chunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
     }
 
     private void handleCHUNK() {
-        System.out.println("Received CHUNK message");
+        System.out.println("MessageHandler receiving :: CHUNK chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
+        String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
+        if(Peer.getData().hasWaitingChunk(chunkID)) {
+            Peer.getData().removeWaitingChunk(chunkID);
+            Peer.getData().addReceivedChunk(new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getBody()));
+        }
     }
 
     private void handleDELETE() {

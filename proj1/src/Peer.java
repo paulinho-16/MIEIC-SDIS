@@ -26,7 +26,7 @@ public class Peer {
     // Peer stored data
     private static DataStored data = new DataStored();
     // Inicializing thead Pool executor as a scheduled
-    static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(100);
+    static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(200);
 
     // Macros
     public static final int CHUNK_SIZE = 64000; // Chunk maximum size i 64KB

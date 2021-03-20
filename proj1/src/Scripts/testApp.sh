@@ -4,9 +4,16 @@
 cd ..
 
 # Launching rmi registry
+echo "Starting RMI Registry..."
+start rmiregistry
+
+# Launching rmi registry
 echo "Starting Test Application..."
 
 #TestApp
-java TestApp Peer1 BACKUP TestApp/Ficha_de_TrabalhoPPI_-_Estudantes.pdf 1
+java TestApp Peer1 BACKUP TestApp/hospital.jpg 1
+# java TestApp Peer1 BACKUP TestApp/FichaPPIN.pdf 1
+# java TestApp Peer1 DELETE TestApp/hospital.jpg
+# java TestApp Peer1 DELETE TestApp/FichaPPIN.pdf
 
 echo "Launched TestApp"

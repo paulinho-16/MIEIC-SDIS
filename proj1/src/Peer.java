@@ -1,10 +1,8 @@
-import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -22,7 +20,7 @@ public class Peer {
     private static MulticastDataRecovery restoreChannel;
     // Paths
     private String chunksPath, personalFilesPath, restoredFilesPath;
-    private static String serializationPath = "Serialization/" + peerID + ".ser ";
+    private static String serializationPath;
     // Protocol
     private PeerProtocol peerProtocol;
     // Peer stored data
@@ -80,18 +78,18 @@ public class Peer {
         chunksPath = DIRECTORY + peerID + "/chunks";
         personalFilesPath = DIRECTORY + peerID + "/personal_files";
         restoredFilesPath = DIRECTORY + peerID + "/restored_files";
+        serializationPath = "serialization/peer" + peerID + ".ser";
 
         createDirectory(DIRECTORY + peerID);
         createDirectory(chunksPath);
         createDirectory(personalFilesPath);
         createDirectory(restoredFilesPath);
+        createDirectory("serialization");
 
-        /*
         // Reads the serialized data from the peer
         loadChunks();
         // Ensures data is serialized before the application shuts down
         Runtime.getRuntime().addShutdownHook(new Thread(Peer::saveChunks));
-        */
     }
 
     public static String getPeerID() {
@@ -113,7 +111,6 @@ public class Peer {
     public static MulticastDataChannel getMDBChannel() {
         return backupChannel;
     }
-
 
     private void createDirectory(String path) {
         File fileData = new File(path);
@@ -142,8 +139,9 @@ public class Peer {
     public static void loadChunks(){
         try {
             File file = new File(serializationPath);
-            if(!file.exists()) return;
-            // ESte path ainda não está bem, é preciso atribuir um diretório correto mais tarde
+            if(!file.exists())
+                return;
+            // Este path ainda não está bem, é preciso atribuir um diretório correto mais tarde
             FileInputStream fileIn = new FileInputStream(serializationPath);
             ObjectInputStream in = new ObjectInputStream(fileIn);
             // Se depois houver mais estruturas de dados, é preciso lê-las na mesma ordem que se escrevem

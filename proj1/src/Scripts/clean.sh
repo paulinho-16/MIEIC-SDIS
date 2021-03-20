@@ -4,3 +4,4 @@
 cd ..
 
 rm -r peers
+rm -r *.class

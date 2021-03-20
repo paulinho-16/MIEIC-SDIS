@@ -20,8 +20,9 @@ public class TestApp {
             Registry registry = LocateRegistry.getRegistry("localhost");
             peer = (PeerInterface) registry.lookup(peer_ap);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Error creating registry: " + e.toString());
+            //e.printStackTrace();
+            System.out.println("Error creating registry: rmiregistry or the Peer might not have been initialized");
+            System.out.println("Exception: " + e.toString());
             return;
         }
 

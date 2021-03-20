@@ -67,9 +67,10 @@ public class DataStored implements Serializable {
             return;
         }*/
         String key = chunk.getFileID() + "/" + chunk.getChunkNumber();
-        if (this.backupChunks.containsKey(key)){
+        if (this.backupChunks.containsKey(key))
             return;
-        }
+
+        this.backupChunks.put(key, chunk);
 
         Peer.getMCChannel().sendStoreMsg(chunk);
 
@@ -156,10 +157,10 @@ public class DataStored implements Serializable {
         try{
             File myObj = new File(path);
             if (myObj.createNewFile()) {
-                //System.out.println("File created: " + path);
+                System.out.println("File created: " + path);
                 return myObj;
             } else {
-                //System.out.println("File already exists.");
+                System.out.println("File already exists.");
             }
         }catch(Exception e){
             System.out.println("Error on creating file: " + path);

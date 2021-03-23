@@ -31,6 +31,16 @@ public class FileData implements Serializable {
         return replicationDegree;
     }
 
+    public int getCurrentReplicationDegree() {
+        int curRepDeg = Integer.MAX_VALUE;
+        for (Integer key : backupChunks.keySet()) {
+            if (curRepDeg > backupChunks.get(key).size()){
+                curRepDeg = backupChunks.get(key).size();
+            }
+        }
+        return curRepDeg;
+    }
+
     public boolean hasChunkBackup(int chunkNumber) {
         return backupChunks.containsKey(chunkNumber);
     }
@@ -69,5 +79,12 @@ public class FileData implements Serializable {
 
     Enumeration<Integer> getChunkNumbers() {
         return backupChunks.keys();
+    }
+
+    public void removePeerBackingUpChunk(int chunkNo, String senderID) {
+        CopyOnWriteArraySet<String> peers = backupChunks.get(chunkNo);
+        peers.remove(senderID);
+        // Será que é por referência? Não é preciso put?
+
     }
 }

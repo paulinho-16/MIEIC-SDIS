@@ -125,7 +125,7 @@ public class Peer {
     public static void saveChunks() {
         try {
             DataStored.createFile(serializationPath);
-            // Este path ainda não está bem, é preciso atribuir um diretório correto mais tarde
+
             FileOutputStream fileOut = new FileOutputStream(serializationPath);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
             // Deve-se escrever todos os objetos que se deseja, neste caso ainda só temos um chunkMap
@@ -145,7 +145,7 @@ public class Peer {
             File file = new File(serializationPath);
             if(!file.exists())
                 return;
-            // Este path ainda não está bem, é preciso atribuir um diretório correto mais tarde
+
             FileInputStream fileIn = new FileInputStream(serializationPath);
             ObjectInputStream in = new ObjectInputStream(fileIn);
             // Se depois houver mais estruturas de dados, é preciso lê-las na mesma ordem que se escrevem

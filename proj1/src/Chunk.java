@@ -21,6 +21,10 @@ class Chunk implements java.io.Serializable{
         return body;
     }
 
+    public int getSize() {
+        return body.length;
+    }
+
     public String getVersion() {
         return version;
     }

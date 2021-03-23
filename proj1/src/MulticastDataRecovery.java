@@ -5,8 +5,4 @@ public class MulticastDataRecovery extends MulticastChannel{
     MulticastDataRecovery(InetAddress addr, int port, String peerID) throws IOException {
         super(addr, port, peerID);
     }
-
-    public void reclaim(int disk_space) {
-        // TO DO
-    }
 }

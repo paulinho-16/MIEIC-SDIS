@@ -75,6 +75,10 @@ public class TestApp {
                     System.out.println("Third argument, <disk_space>, must be an integer");
                     return;
                 }
+                if (disk_space < 0) {
+                    System.out.println("Third argument, <disk_space>, must be an integer greater than or equal to 0");
+                    return;
+                }
                 peer.reclaim(disk_space);
                 break;
 

@@ -1,6 +1,8 @@
 import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.Iterator;
+import java.util.Map;
 
 public class DataStored implements Serializable {
     private int totalSpace;
@@ -13,6 +15,7 @@ public class DataStored implements Serializable {
     private ConcurrentHashMap<String, Chunk> receivedChunks = new ConcurrentHashMap<>();
 
     public DataStored() {
+        this.totalSpace = Integer.MAX_VALUE;
         this.occupiedSpace = 0;
     }
 
@@ -40,6 +43,14 @@ public class DataStored implements Serializable {
         return receivedChunks.get(chunkID);
     }
 
+    public int getTotalSpace() {
+        return totalSpace;
+    }
+
+    public int getOccupiedSpace() {
+        return occupiedSpace;
+    }
+
     public void addWaitingChunk(String chunkID) {
         waitingChunks.add(chunkID);
     }
@@ -54,6 +65,10 @@ public class DataStored implements Serializable {
 
     public void removeReceivedChunk(String chunkID) {
         receivedChunks.remove(chunkID);
+    }
+
+    public void setTotalSpace(int totalSpace) {
+        this.totalSpace = totalSpace;
     }
 
     // Add a new file to the list of personal backed up files of the peer
@@ -99,30 +114,29 @@ public class DataStored implements Serializable {
     }
 
     public void storeNewChunk(Chunk chunk) {
-        // Verificar se espaço disponível é suficiente para armazenar o ficheiro!!!
-
-        //String key = chunk.getFileID() + "/" + chunk.getChunkNumber();
-        // If chunk is already backed up, do nothing
-        /*if (backupChunks.containsKey(key)) {
+        if (occupiedSpace + chunk.getSize() > totalSpace) {
+            System.out.println("Peer " + Peer.getPeerID() + " doesn't have enough space for chunk " + chunk.getChunkNumber());
             return;
-        }*/
+        }
+
         String key = chunk.getFileID() + "-" + chunk.getChunkNumber();
         if (this.backupChunks.containsKey(key))
             return;
 
         this.backupChunks.put(key, chunk);
+        this.occupiedSpace += chunk.getSize();
 
         Peer.getMCChannel().sendStoreMsg(chunk);
 
         String path = Peer.DIRECTORY + Peer.getPeerID() + "/chunks/" + chunk.getFileID() + "-" + chunk.getChunkNumber();
 
         // Falta o path
-        try{
+        try {
             File file = createFile(path);
             FileOutputStream fout = new FileOutputStream(file);
             fout.write(chunk.getData());
             fout.close();
-        }catch(IOException e){
+        } catch(IOException e){
             System.out.println("Error on writing chunk to a file");
         }
     }
@@ -164,6 +178,7 @@ public class DataStored implements Serializable {
                     System.out.println("Error deleting chunk file");
                     return false;
                 }
+                occupiedSpace -= chunk.getSize();
 
                 if (backupChunks.remove(key) == null){
                     System.out.println("Error deleting chunk from backupChunks");
@@ -193,6 +208,12 @@ public class DataStored implements Serializable {
        return true;
     }
 
+    public boolean spaceExceeded() {
+        System.out.println("TotalSpace: " + totalSpace);
+        System.out.println("OccupiedSpace: " + occupiedSpace);
+        return occupiedSpace > totalSpace;
+    }
+
     public static File createFile(String path) {
         try{
             File myObj = new File(path);
@@ -209,5 +230,26 @@ public class DataStored implements Serializable {
         return null;
     }
 
+    public boolean allocateSpace() {
+        // Traversing the backed up chunks using an iterator
+        Iterator<Map.Entry<String, Chunk>> itr = backupChunks.entrySet().iterator();
 
+        while (spaceExceeded() && itr.hasNext()) {
+            Chunk chunk = itr.next().getValue();
+            int spaceFreed = chunk.getSize();
+            if (chunk.delete()) {
+                // Verificar se ta remoção é feita com sucesso?
+                backupChunks.remove(chunk.getID());
+                occupiedSpace -= spaceFreed;
+
+                // "1.0", "REMOVED", peerID , fileID, Integer.toString(chunkNumber)
+                // Version?? Associar a quê?
+                byte[] message = MessageParser.makeHeader("1.0", "REMOVED", Peer.getPeerID(), chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
+                Peer.getMCChannel().threads.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
+            }
+            else
+                return false;
+        }
+        return true;
+    }
 }

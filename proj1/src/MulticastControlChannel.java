@@ -43,7 +43,7 @@ public class MulticastControlChannel extends MulticastChannel {
         while(chunkNumbers.hasMoreElements()) {
             Integer chunkNumber = chunkNumbers.nextElement();
 
-            // MUDAR VERSÂO - versão deve estar associada a quê?
+            // MUDAR VERSÃO - versão deve estar associada a quê?
             byte[] message =  MessageParser.makeHeader("1.0", "GETCHUNK", peerID , fileID, Integer.toString(chunkNumber));
 
             String chunkID = fileID + "-" + chunkNumber;
@@ -78,5 +78,14 @@ public class MulticastControlChannel extends MulticastChannel {
                         this.sendMessage(message)),
                 random.nextInt(401), TimeUnit.MILLISECONDS
         );
+    }
+
+    public void reclaim(int disk_space) {
+        Peer.getData().setTotalSpace(disk_space * 1000);
+        // While there is still not enough space, we need to delete more chunks
+        if (Peer.getData().allocateSpace())
+            System.out.println("Reclaim successful: Peer " + Peer.getPeerID() + " now has " + (Peer.getData().getTotalSpace() - Peer.getData().getOccupiedSpace()) + " free space");
+        else
+            System.out.println("Error reclaiming space on peer " + Peer.getPeerID());
     }
 }

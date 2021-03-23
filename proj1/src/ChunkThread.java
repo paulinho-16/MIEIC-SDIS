@@ -26,7 +26,7 @@ public class ChunkThread implements Runnable {
 
         System.out.println("ChunkThread sending :: CHUNK chunk " + chunk.getChunkNumber() + " Sender " + Peer.getPeerID());
         Peer.executor.execute(new Thread(() ->
-                Peer.getMDRChannel().sendMessage(message)
-        ));
+                           Peer.getMDRChannel().sendMessage(message)
+                   ));
     }
 }

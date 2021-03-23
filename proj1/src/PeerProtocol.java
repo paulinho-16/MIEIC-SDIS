@@ -44,7 +44,8 @@ public class PeerProtocol implements PeerInterface {
 
     @Override
     public void reclaim(int disk_space) {
-        executor.execute(new Thread(() -> mdr.reclaim(disk_space)));
+        System.out.println("Request: Reclaim");
+        executor.execute(new Thread(() -> mc.reclaim(disk_space)));
     }
 
     @Override

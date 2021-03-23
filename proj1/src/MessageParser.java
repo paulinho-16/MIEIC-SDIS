@@ -11,7 +11,7 @@ public class MessageParser {
 
     // Header Atributes (Optional and ordered)
     private String version, messageType, senderID, fileID;
-    int chunkNo, replicationDeg;
+    private int chunkNo, replicationDeg;
 
     public MessageParser(byte[] message) {
         this.message = message;
@@ -101,5 +101,9 @@ public class MessageParser {
         System.arraycopy(input,0,output,0,i+1);
 
         return output;
+    }
+
+    public int getReplicationDegree() {
+        return replicationDeg;
     }
 }

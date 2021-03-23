@@ -89,5 +89,28 @@ public class MessageHandler implements Runnable {
 
     private void handleREMOVED() {
         System.out.println("MessageHandler receiving :: REMOVED chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
+        // Verificar se tem uma cópia local do chunk
+
+        if (Peer.getData().hasFileData(this.messageParser.getFileID())) {
+            FileData filedata = Peer.getData().getFileData(this.messageParser.getFileID());
+            if (filedata.hasChunkBackup(this.messageParser.getChunkNo())) {
+                filedata.removePeerBackingUpChunk(this.messageParser.getChunkNo(), this.messageParser.getSenderID());
+                int currentRepDegree = filedata.getCurrentReplicationDegree();
+                int desiredRepDegree = filedata.getReplicationDegree();
+                System.out.println("Current Degree: " + currentRepDegree);
+                System.out.println("Desired Degree: " + desiredRepDegree);
+                if (currentRepDegree < desiredRepDegree) {
+                    // Versão?? Onde armazenar?
+                    System.out.println("ENTROU NO IF MISTERIOSO");
+                    System.out.println(this.messageParser.getSenderID());
+                    System.out.println(Peer.getPeerID());
+                    byte[] message = MessageParser.makeMessage(this.messageParser.getBody(), "1.0", "PUTCHUNK", Peer.getPeerID(), this.messageParser.getFileID(), Integer.toString(this.messageParser.getChunkNo()), Integer.toString(desiredRepDegree));
+                    Random delay = new Random();
+
+                    PutChunkThread putChunkThread = new PutChunkThread(message, this.messageParser.getFileID(), this.messageParser.getChunkNo(), desiredRepDegree);
+                    Peer.getMCChannel().threads.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
+                }
+            }
+        }
     }
 }

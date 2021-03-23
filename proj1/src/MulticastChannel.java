@@ -50,7 +50,7 @@ public class MulticastChannel implements Runnable {
         }
     }
 
-    void receiveMessage(){
+    void receiveMessage() {
         // TODO
     }
 

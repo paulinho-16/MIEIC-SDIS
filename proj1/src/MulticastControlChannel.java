@@ -15,7 +15,7 @@ public class MulticastControlChannel extends MulticastChannel {
 
         byte[] message =  MessageParser.makeHeader(chunk.getVersion(), "STORED", this.peerID , chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
         Random random = new Random();
-        this.threads.schedule(new Thread(() ->
+        Peer.executor.schedule(new Thread(() ->
             this.sendMessage(message)),
             random.nextInt(401), TimeUnit.MILLISECONDS
         );
@@ -49,15 +49,17 @@ public class MulticastControlChannel extends MulticastChannel {
             String chunkID = fileID + "-" + chunkNumber;
             Peer.getData().addWaitingChunk(chunkID);
 
-            threads.execute(new Thread(() -> sendMessage(message)));
+            Peer.executor.execute(new Thread(() -> sendMessage(message)));
             numberChunks++;
 
             System.out.println("MC sending :: GETCHUNK Sender " + peerID + " file "+ fileID + "chunk " + chunkNumber);
         }
 
+
+
         // Meter delay???
-        //Peer.executor.execute(new GetChunkThread(path, fileID, peerID, numberChunks));
-        Peer.executor.schedule(new GetChunkThread(path, fileID, peerID, numberChunks), 10, TimeUnit.SECONDS);
+        Peer.executor.execute(new GetChunkThread(path, fileID, peerID, numberChunks));
+        //Peer.executor.schedule(new GetChunkThread(path, fileID, peerID, numberChunks), 10, TimeUnit.SECONDS);
     }
 
         public void delete(String version, String path) {
@@ -74,7 +76,7 @@ public class MulticastControlChannel extends MulticastChannel {
 
         byte[] message =  MessageParser.makeHeader(version, "DELETE", this.peerID , fileID);
         Random random = new Random();
-        this.threads.schedule(new Thread(() ->
+        Peer.executor.schedule(new Thread(() ->
                         this.sendMessage(message)),
                 random.nextInt(401), TimeUnit.MILLISECONDS
         );

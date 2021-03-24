@@ -1,4 +1,3 @@
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
@@ -27,12 +26,18 @@ public class GetChunkThread implements Runnable {
     public void run() {
         String fileCopy = makeCopyName();
         String copyPath = "peers/" + Peer.getPeerID() + "/restored_files/" + fileCopy;
-
-        //File file = new File(copyPath);
+        
         Peer.getData().createFile(copyPath);
-        // Modifies file if it already exists
-        //if (file.exists())
-            //file.delete();
+
+        while(!Peer.getData().receivedAllChunks(fileID)) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println("Left the loop");
 
         for (int i = 0; i < numberChunks; i++) {
             String chunkID = fileID + "-" + i;

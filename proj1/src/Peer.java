@@ -26,7 +26,7 @@ public class Peer {
     // Peer stored data
     private static DataStored data = new DataStored();
     // Inicializing thead Pool executor as a scheduled
-    static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(200);
+    static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(250);
 
     // Macros
     public static final int CHUNK_SIZE = 64000; // Chunk maximum size i 64KB
@@ -121,7 +121,7 @@ public class Peer {
         fileData.mkdirs();
     }
 
-    // Synchronized? Vários gits têm isto, o que faz sentido tendo em conta o uso de threads (verificar mais tarde)
+
     public static void saveChunks() {
         try {
             DataStored.createFile(serializationPath);

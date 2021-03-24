@@ -67,7 +67,7 @@ public class MessageHandler implements Runnable {
         System.out.println("MessageHandler receiving :: GETCHUNK chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
         Random delay = new Random();
         ChunkThread chunkThread = new ChunkThread(this.messageParser.getSenderID(), this.messageParser.getFileID(), this.messageParser.getChunkNo());
-        Peer.getMDRChannel().threads.schedule(chunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
+        Peer.executor.schedule(chunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
     }
 
     private void handleCHUNK() {
@@ -76,6 +76,7 @@ public class MessageHandler implements Runnable {
         if(Peer.getData().hasWaitingChunk(chunkID)) {
             Peer.getData().removeWaitingChunk(chunkID);
             Peer.getData().addReceivedChunk(new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getBody()));
+            notifyAll();
         }
     }
 
@@ -108,7 +109,7 @@ public class MessageHandler implements Runnable {
                     Random delay = new Random();
 
                     PutChunkThread putChunkThread = new PutChunkThread(message, this.messageParser.getFileID(), this.messageParser.getChunkNo(), desiredRepDegree);
-                    Peer.getMCChannel().threads.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
+                    Peer.executor.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
                 }
             }
         }

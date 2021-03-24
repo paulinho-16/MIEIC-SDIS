@@ -9,15 +9,12 @@ public class MulticastChannel implements Runnable {
     protected final InetAddress addr;
     protected final int port;
     protected final MulticastSocket multicastSocket;
-    protected ScheduledThreadPoolExecutor threads;
     protected final String peerID;
 
     MulticastChannel(InetAddress addr, int port, String peerID) throws IOException {
         this.addr = addr;
         this.port = port;
         this.peerID = peerID;
-        this.threads = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(200);  // 200 available threads
-        //this.unicastSocket = new DatagramSocket(port); // Qual socket usar para sendMessage??? Não devia ser o do MC channel?
         this.multicastSocket = new MulticastSocket(port);
         this.multicastSocket.joinGroup(this.addr);
     }

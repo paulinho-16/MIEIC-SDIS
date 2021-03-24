@@ -15,7 +15,7 @@ public class DataStored implements Serializable {
     private ConcurrentHashMap<String, Chunk> receivedChunks = new ConcurrentHashMap<>();
 
     public DataStored() {
-        this.totalSpace = Integer.MAX_VALUE;
+        this.totalSpace = 30000000; // Default Value: 30MB
         this.occupiedSpace = 0;
     }
 
@@ -89,7 +89,6 @@ public class DataStored implements Serializable {
         if (!file.hasChunkBackup(chunk.getChunkNumber())) {
             file.addChunkBackup(chunk);
         }*/
-
     }
 
     // Return the backed up chunk if exists, return null otherwise
@@ -208,6 +207,19 @@ public class DataStored implements Serializable {
        return true;
     }
 
+    boolean receivedAllChunks(String fileID) {
+        FileData fileData = personalBackedUpFiles.get(fileID);
+        int numberChunks = fileData.getBackupChunksSize();
+        receivedChunks.keySet();
+        for (int i = 0; i < numberChunks; i++) {
+            String chunkID = fileID + "-" + i;
+            if (!receivedChunks.containsKey(chunkID)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public boolean spaceExceeded() {
         System.out.println("TotalSpace: " + totalSpace);
         System.out.println("OccupiedSpace: " + occupiedSpace);
@@ -245,7 +257,7 @@ public class DataStored implements Serializable {
                 // "1.0", "REMOVED", peerID , fileID, Integer.toString(chunkNumber)
                 // Version?? Associar a quê?
                 byte[] message = MessageParser.makeHeader("1.0", "REMOVED", Peer.getPeerID(), chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
-                Peer.getMCChannel().threads.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
+                Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
             }
             else
                 return false;

@@ -1,3 +1,4 @@
+import javax.swing.plaf.nimbus.State;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -49,7 +50,20 @@ public class PeerProtocol implements PeerInterface {
     }
 
     @Override
-    public void state() {
+    public String state() {
+        System.out.println("Request: State");
 
+        StateThread stateThread = new StateThread();
+        Thread thread = new Thread(stateThread);
+        thread.start();
+        String printable;
+        try {
+            thread.join();
+            printable = stateThread.getString();
+            return printable;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

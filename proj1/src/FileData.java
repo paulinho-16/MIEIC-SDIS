@@ -59,17 +59,16 @@ public class FileData implements Serializable {
         return backupChunks.get(chunkNumber).size();
     }
 
+    public ConcurrentHashMap<Integer, CopyOnWriteArraySet<String>> getBackupChunks() {
+        return backupChunks;
+    }
+
     public int getBackupChunksSize() {
         return backupChunks.size();
     }
 
     public Chunk getChunkBackup(int chunkNumber) {
         //return this.backupChunks.get(chunkNumber);
-        return null;
-    }
-
-    public ConcurrentHashMap<Integer, Chunk> getBackupChunks() {
-        //return this.backupChunks;
         return null;
     }
 

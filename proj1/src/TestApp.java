@@ -87,7 +87,7 @@ public class TestApp {
                     System.out.println("STATE operation requires 2 arguments: <peer_ap> <sub_protocol>");
                     return;
                 }
-                peer.state();
+                System.out.println(peer.state());
                 break;
             default:
                 System.out.println("Invalid operation. Options: (BACKUP / RESTORE / DELETE / RECLAIM / STATE)");

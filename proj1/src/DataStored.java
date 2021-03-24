@@ -264,4 +264,51 @@ public class DataStored implements Serializable {
         }
         return true;
     }
+
+    public String displayState() {
+        // For each file whose backup it has initiated:
+        StringBuilder builder = new StringBuilder();
+        builder.append("\nPersonal backed up files:");
+        if (personalBackedUpFiles.isEmpty()) {
+            builder.append(" None");
+        }
+        else {
+            for (String key : personalBackedUpFiles.keySet()) {
+                FileData fileData = personalBackedUpFiles.get(key);
+                builder.append("\n\tPathname: " + fileData.getPath());
+                builder.append("\n\tFileID: " + fileData.getFileID());
+                builder.append("\n\tDesired Replication Degree: " + fileData.getReplicationDegree());
+                builder.append("\n\tFile Chunks:");
+
+                for (int chunkNo : fileData.getBackupChunks().keySet()) {
+                    String chunkID = fileData.getFileID() + "-" + chunkNo;
+                    int perceivedReplicationDegree = fileData.getChunkReplicationNum(chunkNo);
+                    builder.append("\n\t\t ChunkID: " + chunkID); // Meter chunkNumber em vez de chunkID???
+                    builder.append("\n\t\t Perceived Replication Degree: " + perceivedReplicationDegree);
+                }
+            }
+        }
+
+        builder.append("\nStored Chunks:");
+        if (backupChunks.isEmpty()) {
+            builder.append(" None");
+        }
+        else {
+            for (String key : backupChunks.keySet()) {
+                Chunk chunk = backupChunks.get(key);
+                String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
+                builder.append("\n\tChunkID: " + chunkID);
+                builder.append("\n\tSize: " + chunk.getSize() + " bytes");
+                // COMO FAZER PARA CHUNK REP DEGREES DESIRED AND ACTUAL
+                //System.out.println("\tDesired Replication Degree: " + chunk.get);
+            }
+        }
+
+        builder.append("\nStorage Capacity:");
+        int freeSpace = totalSpace - occupiedSpace;
+        builder.append("\n\tFree Space: " + freeSpace + " bytes");
+        builder.append("\n\tOccupied Space " + occupiedSpace + " bytes");
+
+        return builder.toString();
+    }
 }

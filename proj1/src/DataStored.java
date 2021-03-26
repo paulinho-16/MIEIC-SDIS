@@ -11,6 +11,7 @@ public class DataStored implements Serializable {
     // Armazena-se files ou chunks?????
     private ConcurrentHashMap<String, FileData> personalBackedUpFiles = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Chunk> backupChunks = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, CopyOnWriteArraySet<String>> chunksRepDegrees = new ConcurrentHashMap<>();
     private CopyOnWriteArraySet<String> waitingChunks = new CopyOnWriteArraySet<>();
     private ConcurrentHashMap<String, Chunk> receivedChunks = new ConcurrentHashMap<>();
 
@@ -51,6 +52,29 @@ public class DataStored implements Serializable {
         return occupiedSpace;
     }
 
+    public int getChunkReplicationNum(String chunkID) {
+        if (chunksRepDegrees.containsKey(chunkID))
+            return chunksRepDegrees.get(chunkID).size();
+        return 0;
+    }
+
+    public int getFileReplicationDegree(String fileID) {
+        FileData fileData = personalBackedUpFiles.get(fileID);
+        CopyOnWriteArraySet<String> chunks = fileData.getBackupChunks();
+        int curRepDeg = Integer.MAX_VALUE;
+
+        for (String chunkID : chunks) {
+            if (!chunksRepDegrees.containsKey(chunkID))
+                return 0;
+            int chunkRepDeg = chunksRepDegrees.get(chunkID).size();
+            if (curRepDeg > chunkRepDeg) {
+                curRepDeg = chunkRepDeg;
+            }
+        }
+
+        return curRepDeg;
+    }
+
     public void addWaitingChunk(String chunkID) {
         waitingChunks.add(chunkID);
     }
@@ -67,6 +91,12 @@ public class DataStored implements Serializable {
         receivedChunks.remove(chunkID);
     }
 
+    public void removePeerBackingUpChunk(String chunkID, String peerID) {
+        if (chunksRepDegrees.containsKey(chunkID)){
+            chunksRepDegrees.get(chunkID).remove(peerID);
+        }
+    }
+
     public void setTotalSpace(int totalSpace) {
         this.totalSpace = totalSpace;
     }
@@ -79,36 +109,8 @@ public class DataStored implements Serializable {
         }
     }
 
-    // Add a new chunk to the list of backed up chunks of a given file
-    public void backupNewChunk(Chunk chunk) {
-        // TODO:Not adding to backup, need to implement this method
-        /*if (!this.backupFiles.containsKey(chunk.getFileID())) {
-            return; // File is not in the list of backed up files of the peer
-        }
-        FileData file = this.backupFiles.get(chunk.getFileID());
-        if (!file.hasChunkBackup(chunk.getChunkNumber())) {
-            file.addChunkBackup(chunk);
-        }*/
-    }
-
     // Return the backed up chunk if exists, return null otherwise
     public Chunk getChunkBackup(String chunkID) {
-        /*if (!this.backupFiles.containsKey(fileID))
-            return null;
-
-        FileData file = this.backupFiles.get(fileID);
-
-        if (!file.hasChunkBackup(chunkNumber))
-            return null;
-        return file.getChunkBackup(chunkNumber);*/
-
-        /*for (String key : personalBackedUpFiles.keySet()) {
-            FileData file = personalBackedUpFiles.get(key);
-            file.getChunkBackup(chunkNumber);
-
-            return null;
-        }*/
-
         return backupChunks.get(chunkID);
     }
 
@@ -141,25 +143,23 @@ public class DataStored implements Serializable {
     }
 
     public void updateChunkReplicationsNum(String fileID, int chunkNumber, String senderID) {
-        // If the sender of the message is not registered as a Peer backing the chunk, register it
-        /*if (this.backupFiles.containsKey(fileID)) {
-            FileData file = this.backupFiles.get(fileID);
-            if (file.hasChunkBackup(chunkNo)) {
-                Chunk chunk = file.getChunkBackup(chunkNo);
-                if (!chunk.isPeerBackingUp(senderID)) {
-                    chunk.addPeerBackingUp(senderID);
-                }
-            }
-        }
-        else {     // If the file is not contained
-            //this.backupFiles.put(fileID, new FileData());
-        }*/
-
-        if (!this.personalBackedUpFiles.containsKey(fileID))
+        // Antes de mudarmos a forma do Replications Num
+        /*if (!this.personalBackedUpFiles.containsKey(fileID))
             return;
 
         FileData file = this.personalBackedUpFiles.get(fileID);
-        file.addPeerBackingUp(chunkNumber, senderID);
+        file.addPeerBackingUp(chunkNumber, senderID);*/
+
+        String chunkID = fileID + "-" + chunkNumber;
+        CopyOnWriteArraySet<String> peersStoring = chunksRepDegrees.get(chunkID);
+        if (peersStoring == null) {
+            peersStoring = new CopyOnWriteArraySet<>();
+            peersStoring.add(senderID);
+            chunksRepDegrees.put(chunkID, peersStoring);
+        }
+        else {
+            peersStoring.add(senderID);
+        }
     }
 
     public void deleteFileFromMap(String fileID) {
@@ -209,10 +209,8 @@ public class DataStored implements Serializable {
 
     boolean receivedAllChunks(String fileID) {
         FileData fileData = personalBackedUpFiles.get(fileID);
-        int numberChunks = fileData.getBackupChunksSize();
-        receivedChunks.keySet();
-        for (int i = 0; i < numberChunks; i++) {
-            String chunkID = fileID + "-" + i;
+        CopyOnWriteArraySet<String> chunks = fileData.getBackupChunks();
+        for (String chunkID : chunks) {
             if (!receivedChunks.containsKey(chunkID)) {
                 return false;
             }
@@ -256,6 +254,10 @@ public class DataStored implements Serializable {
 
                 // "1.0", "REMOVED", peerID , fileID, Integer.toString(chunkNumber)
                 // Version?? Associar a quê?
+                String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
+                Peer.getData().removePeerBackingUpChunk(chunkID, Peer.getPeerID());
+
+                System.out.println("MC sending :: REMOVED " + " file " + chunk.getFileID() + " chunk " + chunk.getChunkNumber() + " Sender " + Peer.getPeerID());
                 byte[] message = MessageParser.makeHeader("1.0", "REMOVED", Peer.getPeerID(), chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
                 Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
             }
@@ -277,12 +279,12 @@ public class DataStored implements Serializable {
                 FileData fileData = personalBackedUpFiles.get(key);
                 builder.append("\n\tPathname: " + fileData.getPath());
                 builder.append("\n\tFileID: " + fileData.getFileID());
-                builder.append("\n\tDesired Replication Degree: " + fileData.getReplicationDegree());
+                int fileRepDegree = Peer.getData().getFileReplicationDegree(key);
+                builder.append("\n\tDesired Replication Degree: " + fileRepDegree);
                 builder.append("\n\tFile Chunks:");
 
-                for (int chunkNo : fileData.getBackupChunks().keySet()) {
-                    String chunkID = fileData.getFileID() + "-" + chunkNo;
-                    int perceivedReplicationDegree = fileData.getChunkReplicationNum(chunkNo);
+                for (String chunkID : fileData.getBackupChunks()) {
+                    int perceivedReplicationDegree = this.getChunkReplicationNum(chunkID);
                     builder.append("\n\t\t ChunkID: " + chunkID); // Meter chunkNumber em vez de chunkID???
                     builder.append("\n\t\t Perceived Replication Degree: " + perceivedReplicationDegree);
                 }
@@ -310,5 +312,13 @@ public class DataStored implements Serializable {
         builder.append("\n\tOccupied Space " + occupiedSpace + " bytes");
 
         return builder.toString();
+    }
+
+    public void resetPeersBackingUp(String fileID) {
+        FileData filedata = personalBackedUpFiles.get(fileID);
+        CopyOnWriteArraySet<String> chunks = filedata.getBackupChunks();
+        for(String chunkID : chunks){
+            chunksRepDegrees.remove(chunkID);
+        }
     }
 }

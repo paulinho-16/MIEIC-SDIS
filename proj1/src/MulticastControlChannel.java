@@ -1,7 +1,6 @@
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.Enumeration;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -37,12 +36,9 @@ public class MulticastControlChannel extends MulticastChannel {
 
         FileData fileData = Peer.getData().getFileData(fileID);
 
-        Enumeration<Integer> chunkNumbers = fileData.getChunkNumbers();
-        int numberChunks = 0;
+        int totalChunks = fileData.getChunkNumbers();
 
-        while(chunkNumbers.hasMoreElements()) {
-            Integer chunkNumber = chunkNumbers.nextElement();
-
+        for (int chunkNumber = 0;  chunkNumber < totalChunks; chunkNumber++) {
             // MUDAR VERSÃO - versão deve estar associada a quê?
             byte[] message =  MessageParser.makeHeader("1.0", "GETCHUNK", peerID , fileID, Integer.toString(chunkNumber));
 
@@ -50,26 +46,23 @@ public class MulticastControlChannel extends MulticastChannel {
             Peer.getData().addWaitingChunk(chunkID);
 
             Peer.executor.execute(new Thread(() -> sendMessage(message)));
-            numberChunks++;
 
             System.out.println("MC sending :: GETCHUNK Sender " + peerID + " file "+ fileID + "chunk " + chunkNumber);
         }
 
-
-
         // Meter delay???
-        Peer.executor.execute(new GetChunkThread(path, fileID, peerID, numberChunks));
+        Peer.executor.execute(new GetChunkThread(path, fileID, peerID, totalChunks));
         //Peer.executor.schedule(new GetChunkThread(path, fileID, peerID, numberChunks), 10, TimeUnit.SECONDS);
     }
 
-        public void delete(String version, String path) {
-
+    public void delete(String version, String path) {
         if(path == null) {
             throw new IllegalArgumentException("Invalid filepath");
         }
 
         File file = new File(path);
         String fileID = this.createId(this.peerID, path, file.lastModified());
+        Peer.getData().resetPeersBackingUp(fileID);
         Peer.getData().deleteFileFromMap(fileID);
 
         System.out.println("MC sending :: DELETE Sender " + this.peerID + " file " + fileID);

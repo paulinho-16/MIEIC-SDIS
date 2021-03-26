@@ -6,14 +6,16 @@ class Chunk implements java.io.Serializable{
     private int chunkNumber;
     private byte[] body;
     private String version;
+    private int desiredReplicationDegree;
 
     // https://howtodoinjava.com/java/collections/java-copyonwritearraylist/
     private CopyOnWriteArraySet<String> backupPeers = new CopyOnWriteArraySet<>();
 
-    public Chunk(String version, String fileId, int chunkNumber, byte[] body) {
+    public Chunk(String version, String fileId, int chunkNumber, int desiredReplciationDegree, byte[] body) {
         this.version = version;
         this.fileId = fileId;
         this.chunkNumber = chunkNumber;
+        this.desiredReplicationDegree = desiredReplciationDegree;
         this.body = body;
     }
 

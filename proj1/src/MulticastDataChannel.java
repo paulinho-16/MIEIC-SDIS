@@ -22,10 +22,10 @@ public class MulticastDataChannel extends MulticastChannel {
         int chunkCount = 0;
         byte[] chunkData;
         int availableBytes;
-        String fileId = this.createId(this.peerID, path, file.lastModified());
+        String fileID = this.createId(this.peerID, path, file.lastModified());
 
         // Add the file to the peer's list of backed up files
-        Peer.getData().addNewFileToMap(new FileData(path, fileId, replicationDegree));
+        Peer.getData().addNewFileToMap(new FileData(path, fileID, replicationDegree));
 
         // While there are still bytes that can be read
         while((availableBytes = in.available()) > 0) {
@@ -36,7 +36,7 @@ public class MulticastDataChannel extends MulticastChannel {
                 chunkData = new byte[availableBytes];
             }
             in.read(chunkData);
-            byte[] message =  MessageParser.makeMessage(chunkData, version, "PUTCHUNK", this.peerID , fileId, Integer.toString(chunkCount), Integer.toString(replicationDegree));
+            byte[] message =  MessageParser.makeMessage(chunkData, version, "PUTCHUNK", this.peerID , fileID, Integer.toString(chunkCount), Integer.toString(replicationDegree));
             // Verify if the peer contains
 
             //Chunk chunk = Peer.getData().getBackupChunk(fileId, chunkCount);
@@ -44,11 +44,16 @@ public class MulticastDataChannel extends MulticastChannel {
             //Chunk chunk = new Chunk(version, fileId, chunkCount, chunkData);
             System.out.println("MDB sending :: PUTCHUNK chunk " + chunkCount + " Sender " + this.peerID);
             //Peer.getData().backupNewChunk(chunk);
-            FileData filedata = Peer.getData().getFileData(fileId);
-            filedata.addChunk(chunkCount);
+            System.out.println("First point");
+            FileData filedata = Peer.getData().getFileData(fileID);
+            System.out.println("Second point");
+            String chunkID = fileID + "-" + chunkCount;
+            filedata.addChunk(chunkID);
+            System.out.println("Third point");
+
             //Peer.getData().addNewChunkToFileDataMap(chunkCount);
 
-            Peer.executor.execute(new PutChunkThread(message, fileId, chunkCount, replicationDegree));
+            Peer.executor.execute(new PutChunkThread(message, fileID, chunkCount, replicationDegree));
             //}
 
             chunkCount++;

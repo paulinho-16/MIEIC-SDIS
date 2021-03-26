@@ -52,7 +52,7 @@ public class MessageHandler implements Runnable {
         Random delay = new Random();
         Peer.executor.schedule(new Thread(() -> {
             // Que parámetros serão precisos??? version e senderID??
-            Chunk chunk = new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getBody());
+            Chunk chunk = new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getReplicationDegree(), this.messageParser.getBody());
             Peer.getData().storeNewChunk(chunk);
             }), delay.nextInt(401), TimeUnit.MILLISECONDS
         );
@@ -75,8 +75,8 @@ public class MessageHandler implements Runnable {
         String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
         if(Peer.getData().hasWaitingChunk(chunkID)) {
             Peer.getData().removeWaitingChunk(chunkID);
-            Peer.getData().addReceivedChunk(new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getBody()));
-            notifyAll();
+            int replicationDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
+            Peer.getData().addReceivedChunk(new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), replicationDegree, this.messageParser.getBody()));
         }
     }
 
@@ -86,31 +86,33 @@ public class MessageHandler implements Runnable {
         if (!Peer.getData().deleteFileChunks(this.messageParser.getFileID())) {
             System.out.println("Error on operation DELETE");
         }
+        System.out.println("Hello");
+        Peer.getData().resetPeersBackingUp(this.messageParser.getFileID());
+        System.out.println("Goodbye");
     }
 
     private void handleREMOVED() {
         System.out.println("MessageHandler receiving :: REMOVED chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
         // Verificar se tem uma cópia local do chunk
+        String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
+        Peer.getData().removePeerBackingUpChunk(chunkID, this.messageParser.getSenderID());
 
         if (Peer.getData().hasFileData(this.messageParser.getFileID())) {
             FileData filedata = Peer.getData().getFileData(this.messageParser.getFileID());
-            if (filedata.hasChunkBackup(this.messageParser.getChunkNo())) {
-                filedata.removePeerBackingUpChunk(this.messageParser.getChunkNo(), this.messageParser.getSenderID());
-                int currentRepDegree = filedata.getCurrentReplicationDegree();
-                int desiredRepDegree = filedata.getReplicationDegree();
-                System.out.println("Current Degree: " + currentRepDegree);
-                System.out.println("Desired Degree: " + desiredRepDegree);
-                if (currentRepDegree < desiredRepDegree) {
-                    // Versão?? Onde armazenar?
-                    System.out.println("ENTROU NO IF MISTERIOSO");
-                    System.out.println(this.messageParser.getSenderID());
-                    System.out.println(Peer.getPeerID());
-                    byte[] message = MessageParser.makeMessage(this.messageParser.getBody(), "1.0", "PUTCHUNK", Peer.getPeerID(), this.messageParser.getFileID(), Integer.toString(this.messageParser.getChunkNo()), Integer.toString(desiredRepDegree));
-                    Random delay = new Random();
+            int currentRepDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
+            int desiredRepDegree = filedata.getReplicationDegree();
+            System.out.println("Current Degree: " + currentRepDegree);
+            System.out.println("Desired Degree: " + desiredRepDegree);
+            if (currentRepDegree < desiredRepDegree) {
+                // Versão?? Onde armazenar?
+                System.out.println("ENTROU NO IF MISTERIOSO");
+                System.out.println(this.messageParser.getSenderID());
+                System.out.println(Peer.getPeerID());
+                byte[] message = MessageParser.makeMessage(this.messageParser.getBody(), "1.0", "PUTCHUNK", Peer.getPeerID(), this.messageParser.getFileID(), Integer.toString(this.messageParser.getChunkNo()), Integer.toString(desiredRepDegree));
+                Random delay = new Random();
 
-                    PutChunkThread putChunkThread = new PutChunkThread(message, this.messageParser.getFileID(), this.messageParser.getChunkNo(), desiredRepDegree);
-                    Peer.executor.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
-                }
+                PutChunkThread putChunkThread = new PutChunkThread(message, this.messageParser.getFileID(), this.messageParser.getChunkNo(), desiredRepDegree);
+                Peer.executor.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
             }
         }
     }

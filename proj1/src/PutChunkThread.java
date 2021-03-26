@@ -2,8 +2,7 @@ import java.util.concurrent.TimeUnit;
 
 public class PutChunkThread implements Runnable {
     private byte[] message;
-    private String fileID;
-    private int chunkNumber;
+    private String chunkID;
     private int replicationDegree;
     private int numResends = 1; // Number of times that the message was sent
     private int delay = 1;  // Delay to resend the next message
@@ -12,18 +11,19 @@ public class PutChunkThread implements Runnable {
 
     public PutChunkThread(byte[] message, String fileID, int chunkNumber, int replicationDegree) {
         this.message = message;
-        this.fileID = fileID;
-        this.chunkNumber = chunkNumber;
         this.replicationDegree = replicationDegree;
+        this.chunkID = fileID + "-" + chunkNumber;
     }
 
     @Override
     public void run() {
-        System.out.println("Entrou PUTCHUNK thread - CHUNK " + chunkNumber);
-        FileData file = Peer.getData().getFileData(fileID);
-        System.out.println("FILEDATA: " + file.getFileID() + "   BACKUPSIZE: " + file.getBackupChunksSize());
-        int numReplications = file.getChunkReplicationNum(chunkNumber);
-        System.out.println("NumReplications: " + numReplications + "    numResend: " + numResends + " REPDEG " + replicationDegree + " Chunk " + chunkNumber + " DELAY " + delay);
+        System.out.println("Entrou PUTCHUNK thread - CHUNK " + chunkID);
+        //FileData file = Peer.getData().getFileData(fileID);
+        //System.out.println("FILEDATA: " + file.getFileID() + "   BACKUPSIZE: " + file.getBackupChunksSize());
+        //int numReplications = file.getChunkReplicationNum(chunkNumber);
+
+        int numReplications = Peer.getData().getChunkReplicationNum(chunkID);
+        System.out.println("NumReplications: " + numReplications + " numResend: " + numResends + " REPDEG " + replicationDegree + " Chunk " + chunkID + " DELAY " + delay);
         // The number of chunk replications is lower than the desired replication degree: resend PUTCHUNK message
         if (numReplications < replicationDegree) {
             // Verificar se mandamos para o channel errado
@@ -41,7 +41,7 @@ public class PutChunkThread implements Runnable {
             delay *= 2;
         }
         else {
-            System.out.println("Fulfilled replication Degree for chunk " + chunkNumber);
+            System.out.println("Fulfilled replication Degree for chunk " + chunkID);
         }
 
         // E no caso de receber 2 mensagens do mesmo peer? Contador soma 2 vezes...

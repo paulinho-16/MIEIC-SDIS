@@ -18,6 +18,9 @@ public class MulticastControlChannel extends MulticastChannel {
             this.sendMessage(message)),
             random.nextInt(401), TimeUnit.MILLISECONDS
         );
+
+        // Add self to peers backing up chunk
+        Peer.getData().updateChunkReplicationsNum(chunk.getFileID(), chunk.getChunkNumber(), this.peerID);
     }
 
     public void restore(String path) {
@@ -39,8 +42,7 @@ public class MulticastControlChannel extends MulticastChannel {
         int totalChunks = fileData.getChunkNumbers();
 
         for (int chunkNumber = 0;  chunkNumber < totalChunks; chunkNumber++) {
-            // MUDAR VERSÃO - versão deve estar associada a quê?
-            byte[] message =  MessageParser.makeHeader("1.0", "GETCHUNK", peerID , fileID, Integer.toString(chunkNumber));
+            byte[] message =  MessageParser.makeHeader(Peer.getVersion(), "GETCHUNK", peerID , fileID, Integer.toString(chunkNumber));
 
             String chunkID = fileID + "-" + chunkNumber;
             Peer.getData().addWaitingChunk(chunkID);
@@ -55,7 +57,7 @@ public class MulticastControlChannel extends MulticastChannel {
         //Peer.executor.schedule(new GetChunkThread(path, fileID, peerID, numberChunks), 10, TimeUnit.SECONDS);
     }
 
-    public void delete(String version, String path) {
+    public void delete( String path) {
         if(path == null) {
             throw new IllegalArgumentException("Invalid filepath");
         }
@@ -67,7 +69,7 @@ public class MulticastControlChannel extends MulticastChannel {
 
         System.out.println("MC sending :: DELETE Sender " + this.peerID + " file " + fileID);
 
-        byte[] message =  MessageParser.makeHeader(version, "DELETE", this.peerID , fileID);
+        byte[] message =  MessageParser.makeHeader(Peer.getVersion(), "DELETE", this.peerID , fileID);
         Random random = new Random();
         Peer.executor.schedule(new Thread(() ->
                         this.sendMessage(message)),

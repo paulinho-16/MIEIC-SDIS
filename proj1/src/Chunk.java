@@ -8,9 +8,6 @@ class Chunk implements java.io.Serializable{
     private String version;
     private int desiredReplicationDegree;
 
-    // https://howtodoinjava.com/java/collections/java-copyonwritearraylist/
-    private CopyOnWriteArraySet<String> backupPeers = new CopyOnWriteArraySet<>();
-
     public Chunk(String version, String fileId, int chunkNumber, int desiredReplciationDegree, byte[] body) {
         this.version = version;
         this.fileId = fileId;
@@ -43,20 +40,8 @@ class Chunk implements java.io.Serializable{
         return this.fileId + "-" + this.chunkNumber;
     }
 
-    public int getNumReplications() {
-        return this.backupPeers.size();
-    }
-
-    public boolean isPeerBackingUp(String senderID) {
-        return backupPeers.contains(senderID);
-    }
-
-    public void addPeerBackingUp(String peerID) {
-        this.backupPeers.add(peerID);
-    }
-
-    public CopyOnWriteArraySet<String> getPeersBackingUp() {
-        return backupPeers;
+    public int getDesiredReplicationDegree() {
+        return desiredReplicationDegree;
     }
 
     public boolean delete() {

@@ -4,7 +4,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class PeerProtocol implements PeerInterface {
-    private final String peerId, version;
+    private final String peerId;
     private final MulticastControlChannel mc;
     private final MulticastDataChannel mdb;
     private final MulticastDataRecovery mdr;
@@ -12,7 +12,6 @@ public class PeerProtocol implements PeerInterface {
     ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(10);
 
     public PeerProtocol(String version, String peerId, MulticastControlChannel mc, MulticastDataChannel mdb, MulticastDataRecovery mdr) {
-        this.version = version;
         this.peerId = peerId;
         this.mc = mc;
         this.mdb = mdb;
@@ -24,7 +23,7 @@ public class PeerProtocol implements PeerInterface {
         System.out.println("Request: Backup");
         executor.execute(new Thread(() -> {
             try {
-                mdb.backup(filepath, replication_degree, version);
+                mdb.backup(filepath, replication_degree);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -40,7 +39,7 @@ public class PeerProtocol implements PeerInterface {
     @Override
     public void delete(String filepath) {
         System.out.println("Request: Delete");
-        executor.execute(new Thread(() -> mc.delete(version, filepath)));
+        executor.execute(new Thread(() -> mc.delete(filepath)));
     }
 
     @Override

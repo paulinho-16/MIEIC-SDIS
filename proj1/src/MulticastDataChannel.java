@@ -9,7 +9,7 @@ public class MulticastDataChannel extends MulticastChannel {
         super(addr, port, peerID);
     }
 
-    public void backup(String path, int replicationDegree, String version) throws IOException {
+    public void backup(String path, int replicationDegree) throws IOException {
         if(path == null && replicationDegree < 1) {
             throw new IllegalArgumentException("Invalid filepath or replicationDegree");
         }
@@ -36,7 +36,7 @@ public class MulticastDataChannel extends MulticastChannel {
                 chunkData = new byte[availableBytes];
             }
             in.read(chunkData);
-            byte[] message =  MessageParser.makeMessage(chunkData, version, "PUTCHUNK", this.peerID , fileID, Integer.toString(chunkCount), Integer.toString(replicationDegree));
+            byte[] message =  MessageParser.makeMessage(chunkData, Peer.getVersion(), "PUTCHUNK", this.peerID , fileID, Integer.toString(chunkCount), Integer.toString(replicationDegree));
             // Verify if the peer contains
 
             //Chunk chunk = Peer.getData().getBackupChunk(fileId, chunkCount);

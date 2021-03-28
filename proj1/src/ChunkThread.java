@@ -20,9 +20,7 @@ public class ChunkThread implements Runnable {
             return;
         }
         Chunk chunk = Peer.getData().getChunkBackup(chunkID);
-        // Versão??? tem de estar associada a quê?
-        String debug = Integer.toString(chunkNumber);
-        byte[] message = MessageParser.makeMessage(chunk.getData(), "1.0", "CHUNK", Peer.getPeerID(), fileID, Integer.toString(chunkNumber));
+        byte[] message = MessageParser.makeMessage(chunk.getData(), chunk.getVersion(), "CHUNK", Peer.getPeerID(), fileID, Integer.toString(chunkNumber));
 
         System.out.println("ChunkThread sending :: CHUNK chunk " + chunk.getChunkNumber() + " Sender " + Peer.getPeerID());
         Peer.executor.execute(new Thread(() ->

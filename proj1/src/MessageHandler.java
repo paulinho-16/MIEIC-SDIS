@@ -104,11 +104,9 @@ public class MessageHandler implements Runnable {
             System.out.println("Current Degree: " + currentRepDegree);
             System.out.println("Desired Degree: " + desiredRepDegree);
             if (currentRepDegree < desiredRepDegree) {
-                // Versão?? Onde armazenar?
-                System.out.println("ENTROU NO IF MISTERIOSO");
                 System.out.println(this.messageParser.getSenderID());
                 System.out.println(Peer.getPeerID());
-                byte[] message = MessageParser.makeMessage(this.messageParser.getBody(), "1.0", "PUTCHUNK", Peer.getPeerID(), this.messageParser.getFileID(), Integer.toString(this.messageParser.getChunkNo()), Integer.toString(desiredRepDegree));
+                byte[] message = MessageParser.makeMessage(this.messageParser.getBody(), this.messageParser.getVersion(), "PUTCHUNK", Peer.getPeerID(), this.messageParser.getFileID(), Integer.toString(this.messageParser.getChunkNo()), Integer.toString(desiredRepDegree));
                 Random delay = new Random();
 
                 PutChunkThread putChunkThread = new PutChunkThread(message, this.messageParser.getFileID(), this.messageParser.getChunkNo(), desiredRepDegree);

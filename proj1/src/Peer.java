@@ -9,7 +9,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 public class Peer {
     // Constructor parameters
     private static String peerID;
-    private String version, accessPoint;
+    private static String version;
     // Addresses
     private InetAddress mcAddr, mdbAddr, mdrAddr;
     // Ports
@@ -36,7 +36,6 @@ public class Peer {
     public Peer(String version, String peerID, String accessPoint, InetAddress mcAddr, int mcPort, InetAddress mdbAddr, int mdbPort, InetAddress mdrAddr, int mdrPort) throws IOException {
         this.version = version;
         this.peerID = peerID;
-        this.accessPoint = accessPoint;
         this.mcAddr = mcAddr;
         this.mcPort = mcPort;
         this.mdbAddr = mdbAddr;
@@ -78,13 +77,12 @@ public class Peer {
         chunksPath = DIRECTORY + peerID + "/chunks";
         personalFilesPath = DIRECTORY + peerID + "/personal_files";
         restoredFilesPath = DIRECTORY + peerID + "/restored_files";
-        serializationPath = "serialization/peer" + peerID + ".ser";
+        serializationPath = DIRECTORY + peerID + "/data.ser";
 
         createDirectory(DIRECTORY + peerID);
         createDirectory(chunksPath);
         createDirectory(personalFilesPath);
         createDirectory(restoredFilesPath);
-        createDirectory("serialization");
 
         // Reads the serialized data from the peer
         loadChunks();
@@ -96,8 +94,8 @@ public class Peer {
         return peerID;
     }
 
-    public PeerProtocol getProtocol() {
-        return peerProtocol;
+    public static String getVersion() {
+        return version;
     }
 
     public static DataStored getData() {

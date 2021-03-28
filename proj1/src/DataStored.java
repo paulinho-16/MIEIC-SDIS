@@ -8,7 +8,6 @@ public class DataStored implements Serializable {
     private int totalSpace;
     private int occupiedSpace;
 
-    // Armazena-se files ou chunks?????
     private ConcurrentHashMap<String, FileData> personalBackedUpFiles = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Chunk> backupChunks = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, CopyOnWriteArraySet<String>> chunksRepDegrees = new ConcurrentHashMap<>();
@@ -248,17 +247,15 @@ public class DataStored implements Serializable {
             Chunk chunk = itr.next().getValue();
             int spaceFreed = chunk.getSize();
             if (chunk.delete()) {
-                // Verificar se ta remoção é feita com sucesso?
+                // Verificar se a remoção é feita com sucesso?
                 backupChunks.remove(chunk.getID());
                 occupiedSpace -= spaceFreed;
 
-                // "1.0", "REMOVED", peerID , fileID, Integer.toString(chunkNumber)
-                // Version?? Associar a quê?
                 String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
                 Peer.getData().removePeerBackingUpChunk(chunkID, Peer.getPeerID());
 
                 System.out.println("MC sending :: REMOVED " + " file " + chunk.getFileID() + " chunk " + chunk.getChunkNumber() + " Sender " + Peer.getPeerID());
-                byte[] message = MessageParser.makeHeader("1.0", "REMOVED", Peer.getPeerID(), chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
+                byte[] message = MessageParser.makeHeader(chunk.getVersion(), "REMOVED", Peer.getPeerID(), chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
                 Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
             }
             else
@@ -279,12 +276,12 @@ public class DataStored implements Serializable {
                 FileData fileData = personalBackedUpFiles.get(key);
                 builder.append("\n\tPathname: " + fileData.getPath());
                 builder.append("\n\tFileID: " + fileData.getFileID());
-                int fileRepDegree = Peer.getData().getFileReplicationDegree(key);
-                builder.append("\n\tDesired Replication Degree: " + fileRepDegree);
+                int desiredRepDegree = fileData.getReplicationDegree();
+                builder.append("\n\tDesired Replication Degree: " + desiredRepDegree);
                 builder.append("\n\tFile Chunks:");
 
                 for (String chunkID : fileData.getBackupChunks()) {
-                    int perceivedReplicationDegree = this.getChunkReplicationNum(chunkID);
+                    int perceivedReplicationDegree = getChunkReplicationNum(chunkID);
                     builder.append("\n\t\t ChunkID: " + chunkID); // Meter chunkNumber em vez de chunkID???
                     builder.append("\n\t\t Perceived Replication Degree: " + perceivedReplicationDegree);
                 }
@@ -299,10 +296,11 @@ public class DataStored implements Serializable {
             for (String key : backupChunks.keySet()) {
                 Chunk chunk = backupChunks.get(key);
                 String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
+                int perceivedRepDegree = getChunkReplicationNum(chunkID);
                 builder.append("\n\tChunkID: " + chunkID);
                 builder.append("\n\tSize: " + chunk.getSize() + " bytes");
-                // COMO FAZER PARA CHUNK REP DEGREES DESIRED AND ACTUAL
-                //System.out.println("\tDesired Replication Degree: " + chunk.get);
+                builder.append("\n\tDesired RepDegree: " + chunk.getDesiredReplicationDegree());
+                builder.append("\n\tPerceived RepDegree: " + perceivedRepDegree);
             }
         }
 

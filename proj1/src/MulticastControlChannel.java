@@ -13,11 +13,17 @@ public class MulticastControlChannel extends MulticastChannel {
         System.out.println("MC sending :: STORED chunk " + chunk.getChunkNumber() + " Sender " + this.peerID);
 
         byte[] message =  MessageParser.makeHeader(chunk.getVersion(), "STORED", this.peerID , chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
+
+        // Antes de fazer o enhancement do Backup
+        /*
         Random random = new Random();
         Peer.executor.schedule(new Thread(() ->
             this.sendMessage(message)),
             random.nextInt(401), TimeUnit.MILLISECONDS
         );
+        */
+
+        Peer.executor.execute(new Thread(() -> this.sendMessage(message)));
 
         // Add self to peers backing up chunk
         Peer.getData().updateChunkReplicationsNum(chunk.getFileID(), chunk.getChunkNumber(), this.peerID);

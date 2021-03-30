@@ -133,6 +133,22 @@ public class DataStored implements Serializable {
     }
 
     public void storeNewChunk(Chunk chunk) {
+        // Check if Peer already contains the chunk
+        String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
+        if (this.backupChunks.containsKey(chunkID))
+            return;
+
+        // Backup enhancement
+        if(Peer.getVersion().equals("2.0") && chunk.getVersion().equals("2.0")) {
+            int chunkRepDeg = getChunkReplicationNum(chunkID);
+            int desiredRepDeg = chunk.getDesiredReplicationDegree();
+            if (chunkRepDeg >= desiredRepDeg) {
+                System.out.println("Chunk " + chunkID + "already fulfilled repDegree. Ignoring chunk...");
+                return;
+            }
+        }
+
+        // Check if Peer has enough space to store the chunk
         if (occupiedSpace + chunk.getSize() > totalSpace) {
             if (!removeExtraChunks(chunk.getSize())) {
                 System.out.println("Peer " + Peer.getPeerID() + " doesn't have enough space for chunk " + chunk.getChunkNumber());
@@ -140,11 +156,7 @@ public class DataStored implements Serializable {
             }
         }
 
-        String key = chunk.getFileID() + "-" + chunk.getChunkNumber();
-        if (this.backupChunks.containsKey(key))
-            return;
-
-        this.backupChunks.put(key, chunk);
+        this.backupChunks.put(chunkID, chunk);
         this.occupiedSpace += chunk.getSize();
 
         Peer.getMCChannel().sendStoreMsg(chunk);

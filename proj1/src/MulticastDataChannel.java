@@ -44,12 +44,9 @@ public class MulticastDataChannel extends MulticastChannel {
             //Chunk chunk = new Chunk(version, fileId, chunkCount, chunkData);
             System.out.println("MDB sending :: PUTCHUNK chunk " + chunkCount + " Sender " + this.peerID);
             //Peer.getData().backupNewChunk(chunk);
-            System.out.println("First point");
             FileData filedata = Peer.getData().getFileData(fileID);
-            System.out.println("Second point");
             String chunkID = fileID + "-" + chunkCount;
             filedata.addChunk(chunkID);
-            System.out.println("Third point");
 
             //Peer.getData().addNewChunkToFileDataMap(chunkCount);
 

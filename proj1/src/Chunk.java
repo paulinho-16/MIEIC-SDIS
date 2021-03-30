@@ -8,11 +8,11 @@ class Chunk implements java.io.Serializable{
     private String version;
     private int desiredReplicationDegree;
 
-    public Chunk(String version, String fileId, int chunkNumber, int desiredReplciationDegree, byte[] body) {
+    public Chunk(String version, String fileId, int chunkNumber, int desiredReplicationDegree, byte[] body) {
         this.version = version;
         this.fileId = fileId;
         this.chunkNumber = chunkNumber;
-        this.desiredReplicationDegree = desiredReplciationDegree;
+        this.desiredReplicationDegree = desiredReplicationDegree;
         this.body = body;
     }
 

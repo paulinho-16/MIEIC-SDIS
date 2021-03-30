@@ -108,6 +108,25 @@ public class DataStored implements Serializable {
         }
     }
 
+    public boolean removeExtraChunks(int chunkSize) {
+        for (String chunkID : backupChunks.keySet()) {
+            Chunk storedChunk = backupChunks.get(chunkID);
+            // Delete backed up chunk with replication degree greater than the desired
+            int chunkRepDeg = getChunkReplicationNum(chunkID);
+            if (chunkRepDeg > storedChunk.getDesiredReplicationDegree()) {
+                if (storedChunk.delete()) {
+                    backupChunks.remove(chunkID);
+                    occupiedSpace -= storedChunk.getSize();
+                    sendRemovedMessage(storedChunk, chunkID);
+                }
+                if (occupiedSpace + chunkSize <= totalSpace) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // Return the backed up chunk if exists, return null otherwise
     public Chunk getChunkBackup(String chunkID) {
         return backupChunks.get(chunkID);
@@ -115,8 +134,10 @@ public class DataStored implements Serializable {
 
     public void storeNewChunk(Chunk chunk) {
         if (occupiedSpace + chunk.getSize() > totalSpace) {
-            System.out.println("Peer " + Peer.getPeerID() + " doesn't have enough space for chunk " + chunk.getChunkNumber());
-            return;
+            if (!removeExtraChunks(chunk.getSize())) {
+                System.out.println("Peer " + Peer.getPeerID() + " doesn't have enough space for chunk " + chunk.getChunkNumber());
+                return;
+            }
         }
 
         String key = chunk.getFileID() + "-" + chunk.getChunkNumber();
@@ -252,16 +273,20 @@ public class DataStored implements Serializable {
                 occupiedSpace -= spaceFreed;
 
                 String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
-                Peer.getData().removePeerBackingUpChunk(chunkID, Peer.getPeerID());
-
-                System.out.println("MC sending :: REMOVED " + " file " + chunk.getFileID() + " chunk " + chunk.getChunkNumber() + " Sender " + Peer.getPeerID());
-                byte[] message = MessageParser.makeHeader(chunk.getVersion(), "REMOVED", Peer.getPeerID(), chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
-                Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
+                sendRemovedMessage(chunk, chunkID);
             }
             else
                 return false;
         }
         return true;
+    }
+
+    private void sendRemovedMessage(Chunk chunk, String chunkID) {
+        Peer.getData().removePeerBackingUpChunk(chunkID, Peer.getPeerID());
+
+        System.out.println("MC sending :: REMOVED " + " file " + chunk.getFileID() + " chunk " + chunk.getChunkNumber() + " Sender " + Peer.getPeerID());
+        byte[] message = MessageParser.makeHeader(chunk.getVersion(), "REMOVED", Peer.getPeerID(), chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
+        Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
     }
 
     public String displayState() {

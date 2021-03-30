@@ -1,3 +1,5 @@
+import java.io.IOException;
+import java.net.Socket;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -64,6 +66,8 @@ public class MessageHandler implements Runnable {
 
     private void handleGETCHUNK() {
         System.out.println("MessageHandler receiving :: GETCHUNK chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
+        String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
+        Peer.getData().removeChunkMessagesSent(chunkID);
         Random delay = new Random();
         ChunkThread chunkThread = new ChunkThread(this.messageParser.getSenderID(), this.messageParser.getFileID(), this.messageParser.getChunkNo());
         Peer.executor.schedule(chunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
@@ -77,6 +81,9 @@ public class MessageHandler implements Runnable {
             int replicationDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
             Peer.getData().addReceivedChunk(new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), replicationDegree, this.messageParser.getBody()));
         }
+        else {
+            Peer.getData().addChunkMessagesSent(chunkID);
+        }
     }
 
     private void handleDELETE() {
@@ -85,9 +92,7 @@ public class MessageHandler implements Runnable {
         if (!Peer.getData().deleteFileChunks(this.messageParser.getFileID())) {
             System.out.println("Error on operation DELETE");
         }
-        System.out.println("Hello");
         Peer.getData().resetPeersBackingUp(this.messageParser.getFileID());
-        System.out.println("Goodbye");
     }
 
     private void handleREMOVED() {
@@ -112,5 +117,15 @@ public class MessageHandler implements Runnable {
                 Peer.executor.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
             }
         }
+        /*
+        try{
+            Socket socket = new Socket(host,port);
+            clientSocket = serverSocket.accept();
+        }
+        catch (IOException | ClassNotFoundException e){
+            e.printStackTrace();
+            System.out.println("Error on TCP port usage");
+        }
+        */
     }
 }

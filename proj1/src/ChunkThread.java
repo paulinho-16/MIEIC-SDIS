@@ -16,15 +16,19 @@ public class ChunkThread implements Runnable {
 
         // Checking if the chunk exists
         if (!Peer.getData().hasChunkBackup(chunkID)) {
-            System.out.println("Chunk " + chunkNumber + " doesn't exist");
+            System.out.println("Chunk " + chunkID + " doesn't exist");
             return;
         }
+
+        if(Peer.getData().hasChunkMessagesSent(chunkID)) {
+            System.out.println("Chunk " + chunkID + " has already been sent to the Peer Initiator by another peer");
+            return;
+        }
+
         Chunk chunk = Peer.getData().getChunkBackup(chunkID);
         byte[] message = MessageParser.makeMessage(chunk.getData(), chunk.getVersion(), "CHUNK", Peer.getPeerID(), fileID, Integer.toString(chunkNumber));
 
         System.out.println("ChunkThread sending :: CHUNK chunk " + chunk.getChunkNumber() + " Sender " + Peer.getPeerID());
-        Peer.executor.execute(new Thread(() ->
-                           Peer.getMDRChannel().sendMessage(message)
-                   ));
+        Peer.executor.execute(new Thread(() -> Peer.getMDRChannel().sendMessage(message)));
     }
 }

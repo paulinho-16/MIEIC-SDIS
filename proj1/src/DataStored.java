@@ -13,6 +13,7 @@ public class DataStored implements Serializable {
     private ConcurrentHashMap<String, CopyOnWriteArraySet<String>> chunksRepDegrees = new ConcurrentHashMap<>();
     private CopyOnWriteArraySet<String> waitingChunks = new CopyOnWriteArraySet<>();
     private ConcurrentHashMap<String, Chunk> receivedChunks = new ConcurrentHashMap<>();
+    private CopyOnWriteArraySet<String> chunkMessagesSent = new CopyOnWriteArraySet<>();
 
     public DataStored() {
         this.totalSpace = 30000000; // Default Value: 30MB
@@ -34,6 +35,8 @@ public class DataStored implements Serializable {
     public boolean hasReceivedChunk(String chunkID) {
         return receivedChunks.containsKey(chunkID);
     }
+
+    public boolean hasChunkMessagesSent(String chunkID) {return chunkMessagesSent.contains(chunkID);}
 
     public FileData getFileData(String fileID) {
         return personalBackedUpFiles.get(fileID);
@@ -82,6 +85,8 @@ public class DataStored implements Serializable {
         receivedChunks.put(chunk.getID(), chunk);
     }
 
+    public void addChunkMessagesSent(String chunkID) {chunkMessagesSent.add(chunkID);}
+
     public void removeWaitingChunk(String chunkID) {
         waitingChunks.remove(chunkID);
     }
@@ -89,6 +94,8 @@ public class DataStored implements Serializable {
     public void removeReceivedChunk(String chunkID) {
         receivedChunks.remove(chunkID);
     }
+
+    public void removeChunkMessagesSent(String chunkID) {chunkMessagesSent.remove(chunkID);}
 
     public void removePeerBackingUpChunk(String chunkID, String peerID) {
         if (chunksRepDegrees.containsKey(chunkID)){
@@ -142,8 +149,10 @@ public class DataStored implements Serializable {
         if(Peer.getVersion().equals("2.0") && chunk.getVersion().equals("2.0")) {
             int chunkRepDeg = getChunkReplicationNum(chunkID);
             int desiredRepDeg = chunk.getDesiredReplicationDegree();
+            System.out.println("actual chunkRepDeg: " + chunkRepDeg);
+            System.out.println("desired: " + desiredRepDeg);
             if (chunkRepDeg >= desiredRepDeg) {
-                System.out.println("Chunk " + chunkID + "already fulfilled repDegree. Ignoring chunk...");
+                System.out.println("Chunk " + chunkID + " already fulfilled repDegree. Ignoring chunk...");
                 return;
             }
         }
@@ -350,10 +359,17 @@ public class DataStored implements Serializable {
     }
 
     public void resetPeersBackingUp(String fileID) {
-        FileData filedata = personalBackedUpFiles.get(fileID);
+        /*FileData filedata = personalBackedUpFiles.get(fileID);
         CopyOnWriteArraySet<String> chunks = filedata.getBackupChunks();
         for(String chunkID : chunks){
             chunksRepDegrees.remove(chunkID);
+        }*/
+
+        for(String chunkID : chunksRepDegrees.keySet()) {
+            String chunkFileID = chunkID.split("-")[0];
+            if (chunkFileID.equals(fileID)) {
+                chunksRepDegrees.remove(chunkID);
+            }
         }
     }
 }

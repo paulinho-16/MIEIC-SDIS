@@ -142,11 +142,14 @@ public class DataStored implements Serializable {
     public void storeNewChunk(Chunk chunk) {
         // Check if Peer already contains the chunk
         String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
-        if (this.backupChunks.containsKey(chunkID))
+        if (this.backupChunks.containsKey(chunkID)){
+            System.out.println("Chunk has already been stored");
+            Peer.getMCChannel().sendStoreMsg(chunk);
             return;
+        }
 
         // Backup enhancement
-        if(Peer.getVersion().equals("2.0") && chunk.getVersion().equals("2.0")) {
+        if(Peer.getVersion().equals("2.0")) {
             int chunkRepDeg = getChunkReplicationNum(chunkID);
             int desiredRepDeg = chunk.getDesiredReplicationDegree();
             System.out.println("actual chunkRepDeg: " + chunkRepDeg);

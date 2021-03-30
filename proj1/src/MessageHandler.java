@@ -119,8 +119,12 @@ public class MessageHandler implements Runnable {
         }
         /*
         try{
-            Socket socket = new Socket(host,port);
-            clientSocket = serverSocket.accept();
+            // Start Connection
+            clientSocket = new Socket(ip, port);
+            out = new PrintWriter(clientSocket.getOutputStream(), true);
+
+            // Send Message
+
         }
         catch (IOException | ClassNotFoundException e){
             e.printStackTrace();

@@ -1,12 +1,19 @@
+import java.io.*;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.ServerSocket;
+
 public class ChunkThread implements Runnable {
     String fileID, senderID;
-    int chunkNumber;
+    int chunkNumber, port;
+    InetAddress ipAddress;
 
-    public ChunkThread(String senderID, String fileID, int chunkNumber) {
+    public ChunkThread(String senderID, String fileID, int chunkNumber, InetAddress ipAddress, int port) {
         this.senderID = senderID;
         this.fileID = fileID;
         this.chunkNumber = chunkNumber;
-        System.out.println("Thread Constructor called");
+        this.ipAddress = ipAddress;
+        this.port = port;
     }
 
     @Override
@@ -20,15 +27,55 @@ public class ChunkThread implements Runnable {
             return;
         }
 
-        if(Peer.getData().hasChunkMessagesSent(chunkID)) {
+        if (Peer.getData().hasChunkMessagesSent(chunkID)) {
             System.out.println("Chunk " + chunkID + " has already been sent to the Peer Initiator by another peer");
             return;
         }
 
         Chunk chunk = Peer.getData().getChunkBackup(chunkID);
-        byte[] message = MessageParser.makeMessage(chunk.getData(), chunk.getVersion(), "CHUNK", Peer.getPeerID(), fileID, Integer.toString(chunkNumber));
+        byte[] message;
+        if (Peer.getVersion().equals("1.0")) {
+            message = MessageParser.makeMessage(chunk.getData(), chunk.getVersion(), "CHUNK", Peer.getPeerID(), fileID, Integer.toString(chunkNumber));
+            Peer.executor.execute(new Thread(() -> Peer.getMDRChannel().sendMessage(message)));
+        }
+        else if (Peer.getVersion().equals("2.0")) {
+            message = MessageParser.makeMessage(chunk.getData(), chunk.getVersion(), "CHUNK", Peer.getPeerID(), fileID, Integer.toString(chunkNumber));
+            // Using TCP instead
+            try {
+                // Start Connection
+                System.out.println(ipAddress.toString().split("/")[1]);
+                Socket clientSocket = new Socket(ipAddress.toString().split("/")[1], port);
+
+                //servidor.setSoTimeout(400);
+
+                // int port = server.getLocalPort();
+                // String host = InetAddress.getLocalHost().getHostName();
+
+                // Waiting to receive a message
+
+                System.out.println("IPAddress: " + ipAddress);
+                System.out.println("POrt: " + port);
+
+                DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
+
+                // Send Message
+                out.write(message, 0, message.length);
+
+                // Stopping connection
+                out.flush();
+                out.close();
+                clientSocket.close();
+
+                // Send multicast message to warn other peers that this chunk has already been sent to initiator
+                byte[] multicastMessage = MessageParser.makeHeader(chunk.getVersion(), "CHUNK", Peer.getPeerID(), fileID, Integer.toString(chunkNumber));
+                Peer.executor.execute(new Thread(() -> Peer.getMDRChannel().sendMessage(multicastMessage)));
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Error on sending TCP CHUNK message");
+            }
+        }
 
         System.out.println("ChunkThread sending :: CHUNK chunk " + chunk.getChunkNumber() + " Sender " + Peer.getPeerID());
-        Peer.executor.execute(new Thread(() -> Peer.getMDRChannel().sendMessage(message)));
     }
 }

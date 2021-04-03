@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class MessageParser {
@@ -10,8 +11,8 @@ public class MessageParser {
     private byte[] body; // Body without the header
 
     // Header Atributes (Optional and ordered)
-    private String version, messageType, senderID, fileID;
-    private int chunkNo, replicationDeg;
+    private String version, messageType, senderID, fileID, ipAddress;
+    private int chunkNo, replicationDeg, port;
 
     public MessageParser(byte[] message) {
         this.message = message;
@@ -64,7 +65,7 @@ public class MessageParser {
 
         // Get header from the message
         String header = new String(Arrays.copyOfRange(message, 0, i));  // Get Header from the message
-        String[] splitHeader = header.trim().split(" "); // Remove extra spaces and separate header components
+        String[] splitHeader = header.trim().split("\s"); // Remove extra spaces and separate header component
 
         // Parse header parameters
         for(int j = 0; j < splitHeader.length;j++) {
@@ -73,9 +74,11 @@ public class MessageParser {
            else if(j == 2) this.senderID = splitHeader[2];
            else if(j == 3) this.fileID = splitHeader[3];
            else if(j == 4) this.chunkNo = Integer.parseInt(splitHeader[4]);
+           else if(j == 5 && this.messageType.equals("GETCHUNK") && this.version.equals("2.0")) this.port = Integer.parseInt(splitHeader[5].split(CRLF)[1]);
            else if(j == 5) this.replicationDeg = Integer.parseInt(splitHeader[5]);
            else return false;
         }
+
         return true;
     }
 
@@ -93,6 +96,11 @@ public class MessageParser {
         return (String.join(" ", headerString) + CRLF + CRLF).getBytes();
     }
 
+    public static byte[] makeGetChunkMessage(String port, String... headerString){
+        return (String.join(" ", headerString) + " " + CRLF +
+                port + " " + CRLF + CRLF).getBytes();
+    }
+
     public static byte[] trimming(byte[] input){
         int i = input.length;
         while(i-- > 0 && input[i] == 0) {}
@@ -105,5 +113,17 @@ public class MessageParser {
 
     public int getReplicationDegree() {
         return replicationDeg;
+    }
+
+    public String getIPAddress() {
+        return ipAddress;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setMessage(byte[] message) {
+        this.message = message;
     }
 }

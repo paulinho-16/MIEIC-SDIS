@@ -1,6 +1,7 @@
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -48,12 +49,36 @@ public class MulticastControlChannel extends MulticastChannel {
         int totalChunks = fileData.getChunkNumbers();
 
         for (int chunkNumber = 0;  chunkNumber < totalChunks; chunkNumber++) {
-            byte[] message =  MessageParser.makeHeader(Peer.getVersion(), "GETCHUNK", peerID , fileID, Integer.toString(chunkNumber));
-
+            byte[] message;
             String chunkID = fileID + "-" + chunkNumber;
             Peer.getData().addWaitingChunk(chunkID);
 
-            Peer.executor.execute(new Thread(() -> sendMessage(message)));
+            if(Peer.getVersion().equals("2.0")) {
+                try {
+                    System.out.println("Starting GetChunk enhancement");
+                    String ipAddress = InetAddress.getLocalHost().getHostAddress();
+
+                    ServerSocket socket = new ServerSocket(0);
+                    int port = socket.getLocalPort();
+
+                    // Creating alternative header
+                    // Qual porta usar? Diferentes para diferentes chunks?
+                    message = MessageParser.makeGetChunkMessage(Integer.toString(port),Peer.getVersion(), "GETCHUNK", Peer.getPeerID() , fileID, Integer.toString(chunkNumber));
+                    Peer.executor.execute(new Thread(() -> sendMessage(message)));
+
+                    // raise waiting thread
+                    TCPThread tcpThread = new TCPThread(socket);
+                    Peer.executor.execute(tcpThread);
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                    System.out.println("Error on TCP port usage: Server Side");
+                }
+            }
+            else {
+                message = MessageParser.makeHeader(Peer.getVersion(), "GETCHUNK", peerID , fileID, Integer.toString(chunkNumber));
+                Peer.executor.execute(new Thread(() -> sendMessage(message)));
+            }
 
             System.out.println("MC sending :: GETCHUNK Sender " + peerID + " file "+ fileID + "chunk " + chunkNumber);
         }

@@ -1,15 +1,16 @@
-import java.io.IOException;
-import java.net.Socket;
+import java.net.InetAddress;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class MessageHandler implements Runnable {
     private MessageParser messageParser;
     private String peerID;
+    private InetAddress senderAddress;
 
-    public MessageHandler(byte[] message, String peerID) {
+    public MessageHandler(byte[] message, String peerID, InetAddress senderAddress) {
         this.peerID = peerID;
         this.messageParser = new MessageParser(message);
+        this.senderAddress = senderAddress;
     }
 
     @Override
@@ -26,26 +27,13 @@ public class MessageHandler implements Runnable {
         }
 
         switch (messageParser.getMessageType()) {
-            case "PUTCHUNK":
-                handlePUTCHUNK();
-                break;
-            case "STORED":
-                handleSTORED();
-                break;
-            case "GETCHUNK":
-                handleGETCHUNK();
-                break;
-            case "CHUNK":
-                handleCHUNK();
-                break;
-            case "DELETE":
-                handleDELETE();
-                break;
-            case "REMOVED":
-                handleREMOVED();
-                break;
-            default:
-                System.out.println("Invalid message type received: " + messageParser.getMessageType());
+            case "PUTCHUNK" -> handlePUTCHUNK();
+            case "STORED" -> handleSTORED();
+            case "GETCHUNK" -> handleGETCHUNK();
+            case "CHUNK" -> handleCHUNK();
+            case "DELETE" -> handleDELETE();
+            case "REMOVED" -> handleREMOVED();
+            default -> System.out.println("Invalid message type received: " + messageParser.getMessageType());
         }
     }
 
@@ -69,17 +57,20 @@ public class MessageHandler implements Runnable {
         String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
         Peer.getData().removeChunkMessagesSent(chunkID);
         Random delay = new Random();
-        ChunkThread chunkThread = new ChunkThread(this.messageParser.getSenderID(), this.messageParser.getFileID(), this.messageParser.getChunkNo());
+        ChunkThread chunkThread = new ChunkThread(this.messageParser.getSenderID(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.senderAddress, this.messageParser.getPort());
         Peer.executor.schedule(chunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
     }
 
     private void handleCHUNK() {
         System.out.println("MessageHandler receiving :: CHUNK chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
         String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
+
         if(Peer.getData().hasWaitingChunk(chunkID)) {
-            Peer.getData().removeWaitingChunk(chunkID);
-            int replicationDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
-            Peer.getData().addReceivedChunk(new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), replicationDegree, this.messageParser.getBody()));
+            if (Peer.getVersion().equals("1.0")) {
+                Peer.getData().removeWaitingChunk(chunkID);
+                int replicationDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
+                Peer.getData().addReceivedChunk(new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), replicationDegree, this.messageParser.getBody()));
+            }
         }
         else {
             Peer.getData().addChunkMessagesSent(chunkID);
@@ -117,19 +108,5 @@ public class MessageHandler implements Runnable {
                 Peer.executor.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
             }
         }
-        /*
-        try{
-            // Start Connection
-            clientSocket = new Socket(ip, port);
-            out = new PrintWriter(clientSocket.getOutputStream(), true);
-
-            // Send Message
-
-        }
-        catch (IOException | ClassNotFoundException e){
-            e.printStackTrace();
-            System.out.println("Error on TCP port usage");
-        }
-        */
     }
 }

@@ -39,7 +39,7 @@ public class MulticastChannel implements Runnable {
                 // Waiting to receive a packet
                 DatagramPacket requestPacket = new DatagramPacket(msgReceived, msgReceived.length);
                 this.multicastSocket.receive(requestPacket);
-                Peer.executor.execute(new MessageHandler(requestPacket.getData(), this.peerID));
+                Peer.executor.execute(new MessageHandler(requestPacket.getData(), this.peerID, requestPacket.getAddress()));
             }
         } catch(Exception e) {
             e.printStackTrace();

@@ -89,14 +89,20 @@ public class MulticastControlChannel extends MulticastChannel {
     }
 
     public void delete( String path) {
-        if(path == null) {
+        if (path == null) {
             throw new IllegalArgumentException("Invalid filepath");
         }
 
         File file = new File(path);
         String fileID = this.createId(this.peerID, path, file.lastModified());
-        Peer.getData().resetPeersBackingUp(fileID);
-        Peer.getData().deleteFileFromMap(fileID);
+
+        if (Peer.getVersion().equals("1.0")) {
+            Peer.getData().resetPeersBackingUp(fileID);
+            Peer.getData().deleteFileFromMap(fileID);
+        }
+        else {
+            Peer.getData().addDeletedFile(fileID);
+        }
 
         System.out.println("MC sending :: DELETE Sender " + this.peerID + " file " + fileID);
 

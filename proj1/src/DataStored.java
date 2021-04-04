@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.Iterator;
 import java.util.Map;
@@ -14,6 +15,7 @@ public class DataStored implements Serializable {
     private CopyOnWriteArraySet<String> waitingChunks = new CopyOnWriteArraySet<>();
     private ConcurrentHashMap<String, Chunk> receivedChunks = new ConcurrentHashMap<>();
     private CopyOnWriteArraySet<String> chunkMessagesSent = new CopyOnWriteArraySet<>();
+    private CopyOnWriteArraySet<String> deletedFiles = new CopyOnWriteArraySet<>();
 
     public DataStored() {
         this.totalSpace = 30000000; // Default Value: 30MB
@@ -86,6 +88,10 @@ public class DataStored implements Serializable {
     }
 
     public void addChunkMessagesSent(String chunkID) {chunkMessagesSent.add(chunkID);}
+
+    public void addDeletedFile(String fileID) { deletedFiles.add(fileID);}
+
+    public void removeDeletedFile(String fileID) { deletedFiles.remove(fileID);}
 
     public void removeWaitingChunk(String chunkID) {
         waitingChunks.remove(chunkID);
@@ -208,7 +214,8 @@ public class DataStored implements Serializable {
         personalBackedUpFiles.remove(fileID);
     }
 
-    public boolean deleteFileChunks(String fileID) {
+    public boolean
+    deleteFileChunks(String fileID) {
         // Delete all files from all chunks
         System.out.println("Entered deleteFileChunks");
         for(String key : backupChunks.keySet()) {
@@ -370,6 +377,41 @@ public class DataStored implements Serializable {
             String chunkFileID = chunkID.split("-")[0];
             if (chunkFileID.equals(fileID)) {
                 chunksRepDegrees.remove(chunkID);
+            }
+        }
+    }
+
+    public void removePeerBackingUp(String fileID, String peerID) {
+        for(String chunkID : chunksRepDegrees.keySet()) {
+            String chunkFileID = chunkID.split("-")[0];
+            if (chunkFileID.equals(fileID)) {
+                CopyOnWriteArraySet<String> peersBackingUp = chunksRepDegrees.get(chunkID);
+                peersBackingUp.remove(peerID);
+            }
+        }
+    }
+
+    public void updateDeletedFiles(String senderID) {
+        // Enviar só DELETE para os ficheiros que o sender que enviou o HELLO tem ???
+        /*for(String fileID : deletedFiles) {
+            if (hasFileData(fileID)) {
+                for(String chunkID : chunksRepDegrees.keySet()) {
+                    String chunkFileID = chunkID.split("-")[0];
+                    if (chunkFileID.equals(fileID)) {
+                        CopyOnWriteArraySet<String> peersBackingUp = chunksRepDegrees.get(chunkID);
+                        if (peersBackingUp.contains(senderID)) {
+                            String path = getFileData(fileID).getPath();
+                            Peer.getMCChannel().delete(path);
+                        }
+                    }
+                }
+            }
+        }*/
+
+        for(String fileID : deletedFiles) {
+            if(hasFileData(fileID)) {
+                String path = getFileData(fileID).getPath();
+                Peer.getPeerProtocol().delete(path);
             }
         }
     }

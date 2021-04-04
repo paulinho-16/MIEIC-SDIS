@@ -1,5 +1,6 @@
 import java.net.InetAddress;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 public class MessageHandler implements Runnable {
@@ -33,6 +34,8 @@ public class MessageHandler implements Runnable {
             case "CHUNK" -> handleCHUNK();
             case "DELETE" -> handleDELETE();
             case "REMOVED" -> handleREMOVED();
+            case "DELETED" -> handleDELETED();
+            case "HELLO" -> handleHELLO();
             default -> System.out.println("Invalid message type received: " + messageParser.getMessageType());
         }
     }
@@ -58,7 +61,7 @@ public class MessageHandler implements Runnable {
         Peer.getData().removeChunkMessagesSent(chunkID);
         Random delay = new Random();
         ChunkThread chunkThread = new ChunkThread(this.messageParser.getSenderID(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.senderAddress, this.messageParser.getPort());
-        Peer.executor.schedule(chunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
+        Peer.executor.schedule(chunkThread, delay.nextInt(401), TimeUnit.MILLISECONDS);
     }
 
     private void handleCHUNK() {
@@ -78,12 +81,41 @@ public class MessageHandler implements Runnable {
     }
 
     private void handleDELETE() {
-        System.out.println("MessageHandler receiving :: DELETE chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
+        System.out.println("MessageHandler receiving :: DELETE file " + this.messageParser.getFileID() + " Sender " + this.messageParser.getSenderID());
 
         if (!Peer.getData().deleteFileChunks(this.messageParser.getFileID())) {
             System.out.println("Error on operation DELETE");
         }
-        Peer.getData().resetPeersBackingUp(this.messageParser.getFileID());
+
+        //
+        if (Peer.getVersion().equals("1.0"))
+            Peer.getData().resetPeersBackingUp(this.messageParser.getFileID());
+        // Send a Multicast Message signaling the initiator that the file has been deleted
+        // Schedule ou execute !?
+        if (Peer.getVersion().equals("2.0")) {
+            Peer.getData().removePeerBackingUp(this.messageParser.getFileID(), Peer.getPeerID());
+            byte[] message = MessageParser.makeHeader(Peer.getVersion(), "DELETED", Peer.getPeerID(), this.messageParser.getFileID());
+            Random delay = new Random();
+            Peer.executor.schedule(new Thread(() -> Peer.getMCChannel().sendMessage(message)), delay.nextInt(401), TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void handleDELETED() {
+        System.out.println("MessageHandler receiving :: DELETED file " + this.messageParser.getFileID() + " Sender " + this.messageParser.getSenderID());
+
+        // Message is ignored by 1.0 version
+        if(Peer.getVersion().equals("2.0")) {
+            // Se o map ficar com o Set vazio, a key é apagada tb ???
+            Peer.getData().removePeerBackingUp(this.messageParser.getFileID(), this.messageParser.getSenderID());
+
+            if (Peer.getData().hasFileData(this.messageParser.getFileID())) {
+                int fileRepDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
+                if (fileRepDegree == 0) {
+                    Peer.getData().removeDeletedFile(this.messageParser.getFileID());
+                    Peer.getData().deleteFileFromMap(this.messageParser.getFileID());
+                }
+            }
+        }
     }
 
     private void handleREMOVED() {
@@ -107,6 +139,15 @@ public class MessageHandler implements Runnable {
                 PutChunkThread putChunkThread = new PutChunkThread(message, this.messageParser.getFileID(), this.messageParser.getChunkNo(), desiredRepDegree);
                 Peer.executor.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
             }
+        }
+    }
+
+    private void handleHELLO() {
+        System.out.println("MessageHandler receiving :: HELLO Sender " + this.messageParser.getSenderID());
+
+        if (Peer.getVersion().equals("2.0")) {
+            Peer.getData().updateDeletedFiles(this.messageParser.getSenderID());
+
         }
     }
 }

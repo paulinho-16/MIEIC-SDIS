@@ -5,6 +5,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class Peer {
     // Constructor parameters
@@ -22,7 +23,7 @@ public class Peer {
     private String chunksPath, personalFilesPath, restoredFilesPath;
     private static String serializationPath;
     // Protocol
-    private PeerProtocol peerProtocol;
+    private static PeerProtocol peerProtocol;
     // Peer stored data
     private static DataStored data = new DataStored();
     // Inicializing thead Pool executor as a scheduled
@@ -88,6 +89,11 @@ public class Peer {
         loadChunks();
         // Ensures data is serialized before the application shuts down
         Runtime.getRuntime().addShutdownHook(new Thread(Peer::saveChunks));
+
+        // Send HELLO Message
+        byte[] message =  MessageParser.makeHeader(Peer.getVersion(), "HELLO", Peer.peerID);
+        // Meter delay ???
+        Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
     }
 
     public static String getPeerID() {
@@ -114,11 +120,14 @@ public class Peer {
         return restoreChannel;
     }
 
+    public static PeerProtocol getPeerProtocol() {
+        return peerProtocol;
+    }
+
     private void createDirectory(String path) {
         File fileData = new File(path);
         fileData.mkdirs();
     }
-
 
     public static void saveChunks() {
         try {

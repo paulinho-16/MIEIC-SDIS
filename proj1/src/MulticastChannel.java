@@ -1,8 +1,6 @@
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.security.MessageDigest;
 
 public class MulticastChannel implements Runnable {
@@ -19,7 +17,6 @@ public class MulticastChannel implements Runnable {
         this.multicastSocket.joinGroup(this.addr);
     }
 
-    // Não devia ser MulticastChannel?
     void sendMessage(byte[] message) {
         try {
             DatagramPacket packetSend = new DatagramPacket(message, message.length, this.addr, this.port);
@@ -47,14 +44,11 @@ public class MulticastChannel implements Runnable {
         }
     }
 
-    void receiveMessage() {
-        // TODO
-    }
-
     protected String createId(String peerID, String filename, long dateModified) {
         return sha256(peerID + "//" + filename + "//" + dateModified);
     }
 
+    // https://stackoverflow.com/questions/5531455/how-to-hash-some-string-with-sha256-in-java
     public static String sha256(String base) {
         try{
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

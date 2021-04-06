@@ -4,7 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class TCPThread implements Runnable {
-    private ServerSocket serverSocket;
+    private final ServerSocket serverSocket;
 
     public TCPThread(ServerSocket serverSocket) {
         this.serverSocket = serverSocket;
@@ -13,8 +13,6 @@ public class TCPThread implements Runnable {
     @Override
     public void run(){
         try {
-            System.out.println("Antes do accept");
-
             // Initializing the socket
             Socket clientSocket = this.serverSocket.accept();
 
@@ -24,7 +22,7 @@ public class TCPThread implements Runnable {
             DataInputStream in = new DataInputStream(clientSocket.getInputStream());
 
             int count = in.available();
-            byte[] data = new byte[65000];
+            byte[] data = new byte[65536]; // 64 * 1024 bytes
             int number = in.read(data);
 
             System.out.println("count: " + count);

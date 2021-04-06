@@ -1,12 +1,11 @@
 import java.net.InetAddress;
 import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 public class MessageHandler implements Runnable {
-    private MessageParser messageParser;
-    private String peerID;
-    private InetAddress senderAddress;
+    private final MessageParser messageParser;
+    private final String peerID;
+    private final InetAddress senderAddress;
 
     public MessageHandler(byte[] message, String peerID, InetAddress senderAddress) {
         this.peerID = peerID;
@@ -94,6 +93,7 @@ public class MessageHandler implements Runnable {
         // Schedule ou execute !?
         if (Peer.getVersion().equals("2.0")) {
             Peer.getData().removePeerBackingUp(this.messageParser.getFileID(), Peer.getPeerID());
+            System.out.println("MC sending :: DELETED " + " file " + this.messageParser.getFileID() + " Sender " + Peer.getPeerID());
             byte[] message = MessageParser.makeHeader(Peer.getVersion(), "DELETED", Peer.getPeerID(), this.messageParser.getFileID());
             Random delay = new Random();
             Peer.executor.schedule(new Thread(() -> Peer.getMCChannel().sendMessage(message)), delay.nextInt(401), TimeUnit.MILLISECONDS);
@@ -103,9 +103,7 @@ public class MessageHandler implements Runnable {
     private void handleDELETED() {
         System.out.println("MessageHandler receiving :: DELETED file " + this.messageParser.getFileID() + " Sender " + this.messageParser.getSenderID());
 
-        // Message is ignored by 1.0 version
         if(Peer.getVersion().equals("2.0")) {
-            // Se o map ficar com o Set vazio, a key é apagada tb ???
             Peer.getData().removePeerBackingUp(this.messageParser.getFileID(), this.messageParser.getSenderID());
 
             if (Peer.getData().hasFileData(this.messageParser.getFileID())) {
@@ -120,16 +118,15 @@ public class MessageHandler implements Runnable {
 
     private void handleREMOVED() {
         System.out.println("MessageHandler receiving :: REMOVED chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
-        // Verificar se tem uma cópia local do chunk
         String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
         Peer.getData().removePeerBackingUpChunk(chunkID, this.messageParser.getSenderID());
 
+        // Verify if the peer has a local copy of the chunk removed
         if (Peer.getData().hasFileData(this.messageParser.getFileID())) {
             FileData filedata = Peer.getData().getFileData(this.messageParser.getFileID());
             int currentRepDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
             int desiredRepDegree = filedata.getReplicationDegree();
-            System.out.println("Current Degree: " + currentRepDegree);
-            System.out.println("Desired Degree: " + desiredRepDegree);
+            // If the chunk doesn't have the desired Replication Degree, resend PUTCHUNK messages
             if (currentRepDegree < desiredRepDegree) {
                 System.out.println(this.messageParser.getSenderID());
                 System.out.println(Peer.getPeerID());
@@ -147,7 +144,6 @@ public class MessageHandler implements Runnable {
 
         if (Peer.getVersion().equals("2.0")) {
             Peer.getData().updateDeletedFiles(this.messageParser.getSenderID());
-
         }
     }
 }

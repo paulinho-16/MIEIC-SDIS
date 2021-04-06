@@ -10,7 +10,7 @@ public class MulticastDataChannel extends MulticastChannel {
     }
 
     public void backup(String path, int replicationDegree) throws IOException {
-        if(path == null && replicationDegree < 1) {
+        if(path == null || replicationDegree < 1) {
             throw new IllegalArgumentException("Invalid filepath or replicationDegree");
         }
 
@@ -37,27 +37,17 @@ public class MulticastDataChannel extends MulticastChannel {
             }
             in.read(chunkData);
             byte[] message =  MessageParser.makeMessage(chunkData, Peer.getVersion(), "PUTCHUNK", this.peerID , fileID, Integer.toString(chunkCount), Integer.toString(replicationDegree));
-            // Verify if the peer contains
 
-            //Chunk chunk = Peer.getData().getBackupChunk(fileId, chunkCount);
-            //if (chunk == null) {
-            //Chunk chunk = new Chunk(version, fileId, chunkCount, chunkData);
-            System.out.println("MDB sending :: PUTCHUNK chunk " + chunkCount + " Sender " + this.peerID);
-            //Peer.getData().backupNewChunk(chunk);
             FileData filedata = Peer.getData().getFileData(fileID);
             String chunkID = fileID + "-" + chunkCount;
+
             filedata.addChunk(chunkID);
 
-            //Peer.getData().addNewChunkToFileDataMap(chunkCount);
-
             Peer.executor.execute(new PutChunkThread(message, fileID, chunkCount, replicationDegree));
-            //}
 
             chunkCount++;
         }
 
-        // Caso em que file size é múltiplo de 64kb já está incluído no ciclo de cima? testar.
+        // TODO: Caso em que file size é múltiplo de 64kb já está incluído no ciclo de cima? testar.
     }
-
-
 }

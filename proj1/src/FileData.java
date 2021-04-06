@@ -2,13 +2,12 @@ import java.io.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public class FileData implements Serializable {
-    private String path;
-    private String fileID;
-    private int replicationDegree;
+    private final String path;
+    private final String fileID;
+    private final int replicationDegree;
 
-    // ConcurrentHashMap<ChunkNo, repDegree>
     // CopyOnWriteArraySet<chunkID>
-    private CopyOnWriteArraySet<String> backupChunks = new CopyOnWriteArraySet<>();
+    private final CopyOnWriteArraySet<String> backupChunks = new CopyOnWriteArraySet<>();
 
     public FileData(String path, String fileID, int replicationDegree) {
         this.path = path;

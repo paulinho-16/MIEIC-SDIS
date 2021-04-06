@@ -3,7 +3,7 @@ import java.net.*;
 
 public class PeerInitializer {
     public static void main(String[] args) throws IOException {
-        if(args.length != 9) { // Might not be the correct value right now, checking other stuff
+        if(args.length != 9) {
             System.out.println("Usage: java PeerInitializer <protocolVersion> <peerId> <accessPoint>" +
             " <mcAddr> <mcPort> <mdbAddr> <mdbPort> <mdrAddr> <mdrPort>");
             System.out.println("<protocolVersion> -> Version of the protocol to be used");
@@ -22,6 +22,7 @@ public class PeerInitializer {
         }
 
         // Version 1.0 -> No enhancements. Other versions may include several enhancements
+        // Version 2.0 -> Includes all enhancements (Backup, Restore, Delete)
         String version = args[0];
         String peerId = args[1];
         String accessPoint = args[2];
@@ -36,10 +37,7 @@ public class PeerInitializer {
         InetAddress mdrAddr = InetAddress.getByName(args[7]);
         int mdrPort = Integer.parseInt(args[8]);
 
-        // Creating Multicast Channels
-        //Multicast
-
         // Call a Peer object using all this parameters
-        Peer peer = new Peer(version, peerId, accessPoint, mcAddr, mcPort, mdbAddr, mdbPort, mdrAddr, mdrPort);
+        new Peer(version, peerId, accessPoint, mcAddr, mcPort, mdbAddr, mdbPort, mdrAddr, mdrPort);
     }
 }

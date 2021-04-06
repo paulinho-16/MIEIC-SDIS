@@ -20,7 +20,6 @@ public class TestApp {
             Registry registry = LocateRegistry.getRegistry("localhost");
             peer = (PeerInterface) registry.lookup(peer_ap);
         } catch (Exception e) {
-            //e.printStackTrace();
             System.out.println("Error creating registry: rmiregistry or the Peer might not have been initialized");
             System.out.println("Exception: " + e.toString());
             return;
@@ -31,7 +30,7 @@ public class TestApp {
         String file_path;
         int disk_space, replication_degree;
         switch (sub_protocol) {
-            case "BACKUP":
+            case "BACKUP" -> {
                 if (args.length != 4) {
                     System.out.println("BACKUP operation requires 4 arguments: <peer_ap> <sub_protocol> <file_path> <rep_degree>");
                     return;
@@ -44,27 +43,24 @@ public class TestApp {
                     return;
                 }
                 peer.backup(file_path, replication_degree);
-                break;
-
-            case "RESTORE":
+            }
+            case "RESTORE" -> {
                 if (args.length != 3) {
                     System.out.println("RESTORE operation requires 3 arguments: <peer_ap> <sub_protocol> <file_path>");
                     return;
                 }
                 file_path = args[2];
                 peer.restore(file_path);
-                break;
-
-            case "DELETE":
+            }
+            case "DELETE" -> {
                 if (args.length != 3) {
                     System.out.println("DELETE operation requires 3 arguments: <peer_ap> <sub_protocol> <file_path>");
                     return;
                 }
                 file_path = args[2];
                 peer.delete(file_path);
-                break;
-
-            case "RECLAIM":
+            }
+            case "RECLAIM" -> {
                 if (args.length != 3) {
                     System.out.println("RECLAIM operation requires 3 arguments: <peer_ap> <sub_protocol> <disk_space>");
                     return;
@@ -80,18 +76,17 @@ public class TestApp {
                     return;
                 }
                 peer.reclaim(disk_space);
-                break;
-
-            case "STATE":
+            }
+            case "STATE" -> {
                 if (args.length != 2) {
                     System.out.println("STATE operation requires 2 arguments: <peer_ap> <sub_protocol>");
                     return;
                 }
                 System.out.println(peer.state());
-                break;
-            default:
+            }
+            default -> {
                 System.out.println("Invalid operation. Options: (BACKUP / RESTORE / DELETE / RECLAIM / STATE)");
-                return;
+            }
         }
     }
 }

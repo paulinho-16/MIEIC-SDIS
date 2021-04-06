@@ -1,6 +1,5 @@
 import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.Iterator;
 import java.util.Map;
@@ -9,13 +8,13 @@ public class DataStored implements Serializable {
     private int totalSpace;
     private int occupiedSpace;
 
-    private ConcurrentHashMap<String, FileData> personalBackedUpFiles = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, Chunk> backupChunks = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, CopyOnWriteArraySet<String>> chunksRepDegrees = new ConcurrentHashMap<>();
-    private CopyOnWriteArraySet<String> waitingChunks = new CopyOnWriteArraySet<>();
-    private ConcurrentHashMap<String, Chunk> receivedChunks = new ConcurrentHashMap<>();
-    private CopyOnWriteArraySet<String> chunkMessagesSent = new CopyOnWriteArraySet<>();
-    private CopyOnWriteArraySet<String> deletedFiles = new CopyOnWriteArraySet<>();
+    private final ConcurrentHashMap<String, FileData> personalBackedUpFiles = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Chunk> backupChunks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, CopyOnWriteArraySet<String>> chunksRepDegrees = new ConcurrentHashMap<>();
+    private final CopyOnWriteArraySet<String> waitingChunks = new CopyOnWriteArraySet<>();
+    private final ConcurrentHashMap<String, Chunk> receivedChunks = new ConcurrentHashMap<>();
+    private final CopyOnWriteArraySet<String> chunkMessagesSent = new CopyOnWriteArraySet<>();
+    private final CopyOnWriteArraySet<String> deletedFiles = new CopyOnWriteArraySet<>();
 
     public DataStored() {
         this.totalSpace = 30000000; // Default Value: 30MB
@@ -117,7 +116,6 @@ public class DataStored implements Serializable {
     public void addNewFileToMap(FileData fileData) {
         if (!this.personalBackedUpFiles.containsKey(fileData.getFileID())) {
             this.personalBackedUpFiles.put(fileData.getFileID(), fileData);
-            System.out.println("ADICIONOU NOVO FILE");
         }
     }
 
@@ -177,27 +175,20 @@ public class DataStored implements Serializable {
 
         Peer.getMCChannel().sendStoreMsg(chunk);
 
-        String path = Peer.DIRECTORY + Peer.getPeerID() + "/chunks/" + chunk.getFileID() + "-" + chunk.getChunkNumber();
-
-        // Falta o path
+        // Writing the Chunk to a file
         try {
+            String path = Peer.DIRECTORY + Peer.getPeerID() + "/chunks/" + chunk.getFileID() + "-" + chunk.getChunkNumber();
             File file = createFile(path);
+            assert file != null: "Chunk file hasn't been created";
             FileOutputStream fout = new FileOutputStream(file);
             fout.write(chunk.getData());
             fout.close();
-        } catch(IOException e){
+        } catch(IOException e) {
             System.out.println("Error on writing chunk to a file");
         }
     }
 
     public void updateChunkReplicationsNum(String fileID, int chunkNumber, String senderID) {
-        // Antes de mudarmos a forma do Replications Num
-        /*if (!this.personalBackedUpFiles.containsKey(fileID))
-            return;
-
-        FileData file = this.personalBackedUpFiles.get(fileID);
-        file.addPeerBackingUp(chunkNumber, senderID);*/
-
         String chunkID = fileID + "-" + chunkNumber;
         CopyOnWriteArraySet<String> peersStoring = chunksRepDegrees.get(chunkID);
         if (peersStoring == null) {
@@ -214,10 +205,8 @@ public class DataStored implements Serializable {
         personalBackedUpFiles.remove(fileID);
     }
 
-    public boolean
-    deleteFileChunks(String fileID) {
-        // Delete all files from all chunks
-        System.out.println("Entered deleteFileChunks");
+    public boolean deleteFileChunks(String fileID) {
+        // Delete all chunks of the file with fileID
         for(String key : backupChunks.keySet()) {
             Chunk chunk = backupChunks.get(key);
             if(chunk.getFileID().equals(fileID)) {
@@ -227,31 +216,13 @@ public class DataStored implements Serializable {
                     return false;
                 }
                 occupiedSpace -= chunk.getSize();
-
+                // Delete the chunk from the storage
                 if (backupChunks.remove(key) == null){
                     System.out.println("Error deleting chunk from backupChunks");
                     return false;
                 }
             }
         }
-
-        //System.out.println("BACKUPFILE ANTES " + backupFiles.size());
-        /*for (String key : back.keySet()) {
-            ConcurrentHashMap<Integer, Chunk> chunks = backupFiles.get(key).getBackupChunks();
-            for (Integer id : chunks.keySet()) {
-                if(!chunks.get(id).delete()){
-                    System.out.println("Error on deleting chunk " + id);
-                    return false;
-                }
-            }
-        }*/
-
-        //System.out.println("BACKUPFILE DEPOIS " + backupFiles.size());
-        // Delete the chunk file from the backupFiles Map
-        /*if (this.backupFiles.remove(fileID) == null) {
-            System.out.println("Error deleting file from map");
-            return false;
-        }*/
 
        return true;
     }
@@ -297,7 +268,6 @@ public class DataStored implements Serializable {
             Chunk chunk = itr.next().getValue();
             int spaceFreed = chunk.getSize();
             if (chunk.delete()) {
-                // Verificar se a remoção é feita com sucesso?
                 backupChunks.remove(chunk.getID());
                 occupiedSpace -= spaceFreed;
 
@@ -328,16 +298,16 @@ public class DataStored implements Serializable {
         else {
             for (String key : personalBackedUpFiles.keySet()) {
                 FileData fileData = personalBackedUpFiles.get(key);
-                builder.append("\n\tPathname: " + fileData.getPath());
-                builder.append("\n\tFileID: " + fileData.getFileID());
+                builder.append("\n\tPathname: ").append(fileData.getPath());
+                builder.append("\n\tFileID: ").append(fileData.getFileID());
                 int desiredRepDegree = fileData.getReplicationDegree();
-                builder.append("\n\tDesired Replication Degree: " + desiredRepDegree);
+                builder.append("\n\tDesired Replication Degree: ").append(desiredRepDegree);
                 builder.append("\n\tFile Chunks:");
 
                 for (String chunkID : fileData.getBackupChunks()) {
                     int perceivedReplicationDegree = getChunkReplicationNum(chunkID);
-                    builder.append("\n\t\t ChunkID: " + chunkID); // Meter chunkNumber em vez de chunkID???
-                    builder.append("\n\t\t Perceived Replication Degree: " + perceivedReplicationDegree);
+                    builder.append("\n\t\t ChunkID: ").append(chunkID); // Meter chunkNumber em vez de chunkID???
+                    builder.append("\n\t\t Perceived Replication Degree: ").append(perceivedReplicationDegree);
                 }
             }
         }
@@ -351,28 +321,22 @@ public class DataStored implements Serializable {
                 Chunk chunk = backupChunks.get(key);
                 String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
                 int perceivedRepDegree = getChunkReplicationNum(chunkID);
-                builder.append("\n\tChunkID: " + chunkID);
-                builder.append("\n\tSize: " + chunk.getSize() + " bytes");
-                builder.append("\n\tDesired RepDegree: " + chunk.getDesiredReplicationDegree());
-                builder.append("\n\tPerceived RepDegree: " + perceivedRepDegree);
+                builder.append("\n\tChunkID: ").append(chunkID);
+                builder.append("\n\tSize: ").append(chunk.getSize()).append(" bytes");
+                builder.append("\n\tDesired RepDegree: ").append(chunk.getDesiredReplicationDegree());
+                builder.append("\n\tPerceived RepDegree: ").append(perceivedRepDegree);
             }
         }
 
         builder.append("\nStorage Capacity:");
         int freeSpace = totalSpace - occupiedSpace;
-        builder.append("\n\tFree Space: " + freeSpace + " bytes");
-        builder.append("\n\tOccupied Space " + occupiedSpace + " bytes");
+        builder.append("\n\tFree Space: ").append(freeSpace).append(" bytes");
+        builder.append("\n\tOccupied Space ").append(occupiedSpace).append(" bytes");
 
         return builder.toString();
     }
 
     public void resetPeersBackingUp(String fileID) {
-        /*FileData filedata = personalBackedUpFiles.get(fileID);
-        CopyOnWriteArraySet<String> chunks = filedata.getBackupChunks();
-        for(String chunkID : chunks){
-            chunksRepDegrees.remove(chunkID);
-        }*/
-
         for(String chunkID : chunksRepDegrees.keySet()) {
             String chunkFileID = chunkID.split("-")[0];
             if (chunkFileID.equals(fileID)) {

@@ -1,10 +1,10 @@
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+// MC Channel
 public class MulticastControlChannel extends MulticastChannel {
     public MulticastControlChannel(InetAddress addr, int port, String peerID) throws IOException {
         super(addr,port,peerID);
@@ -15,15 +15,6 @@ public class MulticastControlChannel extends MulticastChannel {
 
         byte[] message =  MessageParser.makeHeader(chunk.getVersion(), "STORED", this.peerID , chunk.getFileID(), Integer.toString(chunk.getChunkNumber()));
 
-        // Antes de fazer o enhancement do Backup
-        /*
-        Random random = new Random();
-        Peer.executor.schedule(new Thread(() ->
-            this.sendMessage(message)),
-            random.nextInt(401), TimeUnit.MILLISECONDS
-        );
-        */
-
         Peer.executor.execute(new Thread(() -> this.sendMessage(message)));
 
         // Add self to peers backing up chunk
@@ -31,14 +22,12 @@ public class MulticastControlChannel extends MulticastChannel {
     }
 
     public void restore(String path) {
-        //<Version> GETCHUNK <SenderId> <FileId> <ChunkNo> <CRLF><CRLF>
         if(path == null) {
             throw new IllegalArgumentException("Invalid filepath");
         }
 
         File file = new File(path);
         String fileID = createId(peerID, path, file.lastModified());
-        // Verificar tb se tem todos os chunks?? como?
         if (!Peer.getData().hasFileData(fileID)) {
             System.out.println("Error restoring file " + path + ": File does not belong to Peer " + peerID);
             return;
@@ -55,18 +44,14 @@ public class MulticastControlChannel extends MulticastChannel {
 
             if(Peer.getVersion().equals("2.0")) {
                 try {
-                    System.out.println("Starting GetChunk enhancement");
-                    String ipAddress = InetAddress.getLocalHost().getHostAddress();
-
                     ServerSocket socket = new ServerSocket(0);
                     int port = socket.getLocalPort();
 
                     // Creating alternative header
-                    // Qual porta usar? Diferentes para diferentes chunks?
                     message = MessageParser.makeGetChunkMessage(Integer.toString(port),Peer.getVersion(), "GETCHUNK", Peer.getPeerID() , fileID, Integer.toString(chunkNumber));
                     Peer.executor.execute(new Thread(() -> sendMessage(message)));
 
-                    // raise waiting thread
+                    // Raise waiting thread
                     TCPThread tcpThread = new TCPThread(socket);
                     Peer.executor.execute(tcpThread);
                 }
@@ -83,9 +68,7 @@ public class MulticastControlChannel extends MulticastChannel {
             System.out.println("MC sending :: GETCHUNK Sender " + peerID + " file "+ fileID + "chunk " + chunkNumber);
         }
 
-        // Meter delay???
         Peer.executor.execute(new GetChunkThread(path, fileID, peerID, totalChunks));
-        //Peer.executor.schedule(new GetChunkThread(path, fileID, peerID, numberChunks), 10, TimeUnit.SECONDS);
     }
 
     public void delete( String path) {

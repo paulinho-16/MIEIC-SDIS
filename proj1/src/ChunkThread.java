@@ -1,7 +1,6 @@
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.ServerSocket;
 
 public class ChunkThread implements Runnable {
     String fileID, senderID;
@@ -27,6 +26,7 @@ public class ChunkThread implements Runnable {
             return;
         }
 
+        // Checking if the chunk was already sent by another peer
         if (Peer.getData().hasChunkMessagesSent(chunkID)) {
             System.out.println("Chunk " + chunkID + " has already been sent to the Peer Initiator by another peer");
             return;
@@ -54,7 +54,7 @@ public class ChunkThread implements Runnable {
                 // Waiting to receive a message
 
                 System.out.println("IPAddress: " + ipAddress);
-                System.out.println("POrt: " + port);
+                System.out.println("Port: " + port);
 
                 DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
 

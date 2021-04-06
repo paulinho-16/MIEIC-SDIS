@@ -5,46 +5,33 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class Peer {
     // Constructor parameters
     private static String peerID;
     private static String version;
-    // Addresses
-    private InetAddress mcAddr, mdbAddr, mdrAddr;
-    // Ports
-    private int mcPort, mdbPort, mdrPort;
     // Channels
     private static MulticastControlChannel controlChannel;
     private static MulticastDataChannel backupChannel;
     private static MulticastDataRecovery restoreChannel;
     // Paths
-    private String chunksPath, personalFilesPath, restoredFilesPath;
     private static String serializationPath;
     // Protocol
     private static PeerProtocol peerProtocol;
     // Peer stored data
     private static DataStored data = new DataStored();
-    // Inicializing thead Pool executor as a scheduled
+    // Initializing thread pool executor as a scheduled
     static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(250);
 
     // Macros
-    public static final int CHUNK_SIZE = 64000; // Chunk maximum size i 64KB
-    public static final String DIRECTORY = "peers/"; // Temporary value. Directory created for peers in compilation should be added here
-    public static final byte CR = 0xD, LF = 0xA;  // ASCII codes for <CRLF>
+    public static final int CHUNK_SIZE = 64000; // Chunk maximum size is 64KB
+    public static final String DIRECTORY = "peers/";
 
     public Peer(String version, String peerID, String accessPoint, InetAddress mcAddr, int mcPort, InetAddress mdbAddr, int mdbPort, InetAddress mdrAddr, int mdrPort) throws IOException {
-        this.version = version;
-        this.peerID = peerID;
-        this.mcAddr = mcAddr;
-        this.mcPort = mcPort;
-        this.mdbAddr = mdbAddr;
-        this.mdbPort = mdbPort;
-        this.mdrAddr = mdrAddr;
-        this.mdrPort = mdrPort;
+        Peer.version = version;
+        Peer.peerID = peerID;
 
-        // Subscribed to all 3 multicast channels for the peer
+        // Subscribe the peer to all 3 multicast channels
         // Initialize mc channel
         controlChannel = new MulticastControlChannel(mcAddr, mcPort, peerID);
         // Initialize mdb channel
@@ -56,15 +43,13 @@ public class Peer {
         executor.execute(backupChannel);
         executor.execute(restoreChannel);
 
-        // Using Registry. É assim que se faz para criar um registry quando se têm as funções noutra classe?
         try {
             // Create Remote Object (RMI)
-            this.peerProtocol = new PeerProtocol(version,peerID,controlChannel, backupChannel, restoreChannel);
+            Peer.peerProtocol = new PeerProtocol(controlChannel, backupChannel, restoreChannel);
             PeerInterface stub = (PeerInterface) UnicastRemoteObject.exportObject(peerProtocol, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
-            // Bind ou rebind? o accessPoint vai ser o mesmo para diferentes
             registry.rebind(accessPoint, stub);
 
             System.err.println("Successfully initialized Remote Interface");
@@ -73,6 +58,7 @@ public class Peer {
             System.err.println("Remote Interface Exception: " + e.toString());
             e.printStackTrace();
         }
+        String chunksPath, personalFilesPath, restoredFilesPath;
 
         // Creating directories for the peer data
         chunksPath = DIRECTORY + peerID + "/chunks";
@@ -90,10 +76,14 @@ public class Peer {
         // Ensures data is serialized before the application shuts down
         Runtime.getRuntime().addShutdownHook(new Thread(Peer::saveChunks));
 
-        // Send HELLO Message
-        byte[] message =  MessageParser.makeHeader(Peer.getVersion(), "HELLO", Peer.peerID);
-        // Meter delay ???
-        Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
+        if (version.equals("2.0")) {
+
+            // Send HELLO Message
+            System.out.println("MC sending :: HELLO Sender " + Peer.getPeerID());
+            byte[] message = MessageParser.makeHeader(Peer.getVersion(), "HELLO", Peer.peerID);
+            // Meter delay ???
+            Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
+        }
     }
 
     public static String getPeerID() {
@@ -135,7 +125,6 @@ public class Peer {
 
             FileOutputStream fileOut = new FileOutputStream(serializationPath);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            // Deve-se escrever todos os objetos que se deseja, neste caso ainda só temos um chunkMap
             out.writeObject(data);
             out.close();
             fileOut.close();
@@ -155,7 +144,7 @@ public class Peer {
 
             FileInputStream fileIn = new FileInputStream(serializationPath);
             ObjectInputStream in = new ObjectInputStream(fileIn);
-            // Se depois houver mais estruturas de dados, é preciso lê-las na mesma ordem que se escrevem
+
             data = (DataStored) in.readObject();
             in.close();
             fileIn.close();

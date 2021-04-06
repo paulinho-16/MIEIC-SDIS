@@ -1,9 +1,9 @@
 import java.util.concurrent.TimeUnit;
 
 public class PutChunkThread implements Runnable {
-    private byte[] message;
-    private String chunkID;
-    private int replicationDegree;
+    private final byte[] message;
+    private final String chunkID;
+    private final int replicationDegree;
     private int numResends = 1; // Number of times that the message was sent
     private int delay = 1;  // Delay to resend the next message
 
@@ -17,25 +17,18 @@ public class PutChunkThread implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Entrou PUTCHUNK thread - CHUNK " + chunkID);
-        //FileData file = Peer.getData().getFileData(fileID);
-        //System.out.println("FILEDATA: " + file.getFileID() + "   BACKUPSIZE: " + file.getBackupChunksSize());
-        //int numReplications = file.getChunkReplicationNum(chunkNumber);
-
         int numReplications = Peer.getData().getChunkReplicationNum(chunkID);
-        System.out.println("NumReplications: " + numReplications + " numResend: " + numResends + " REPDEG " + replicationDegree + " Chunk " + chunkID + " DELAY " + delay);
+        System.out.println("NumReplications: " + numReplications + " numResend: " + numResends + " RepDegree " + replicationDegree + " Chunk " + chunkID + " Delay " + delay);
+
         // The number of chunk replications is lower than the desired replication degree: resend PUTCHUNK message
         if (numReplications < replicationDegree) {
-            // Verificar se mandamos para o channel errado
+            System.out.println("MDB sending :: PUTCHUNK chunk " + chunkID + " Sender " + Peer.getPeerID());
             Peer.executor.execute(new Thread(() ->
                 Peer.getMDBChannel().sendMessage(message)
             ));
 
             if (numResends < LIMIT_SEND)
                 Peer.executor.schedule(this, this.delay, TimeUnit.SECONDS);
-            //else
-                //Peer.getData().getBackupChunk(chunk.getFileID(), chunk.getChunkNumber())
-                // O que fazer quando terminar o tempo?
 
             numResends++;
             delay *= 2;
@@ -43,7 +36,5 @@ public class PutChunkThread implements Runnable {
         else {
             System.out.println("Fulfilled replication Degree for chunk " + chunkID);
         }
-
-        // E no caso de receber 2 mensagens do mesmo peer? Contador soma 2 vezes...
     }
 }

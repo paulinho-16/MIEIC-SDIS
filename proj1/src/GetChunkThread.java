@@ -27,7 +27,7 @@ public class GetChunkThread implements Runnable {
         String fileCopy = makeCopyName();
         String copyPath = "peers/" + Peer.getPeerID() + "/restored_files/" + fileCopy;
 
-        Peer.getData().createFile(copyPath);
+        DataStored.createFile(copyPath);
 
         while(!Peer.getData().receivedAllChunks(fileID)) {
             try {
@@ -36,8 +36,6 @@ public class GetChunkThread implements Runnable {
                 e.printStackTrace();
             }
         }
-
-        System.out.println("Left the loop");
 
         for (int i = 0; i < numberChunks; i++) {
             String chunkID = fileID + "-" + i;

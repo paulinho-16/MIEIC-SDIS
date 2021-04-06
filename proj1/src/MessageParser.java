@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.Arrays;
 
 public class MessageParser {
@@ -7,11 +6,11 @@ public class MessageParser {
     public static final String CRLF = "\r\n";
 
     // Bytes
-    private byte[] message; // Full Message
+    private final byte[] message; // Full Message
     private byte[] body; // Body without the header
 
-    // Header Atributes (Optional and ordered)
-    private String version, messageType, senderID, fileID, ipAddress;
+    // Header Attributes
+    private String version, messageType, senderID, fileID;
     private int chunkNo, replicationDeg, port;
 
     public MessageParser(byte[] message) {
@@ -36,10 +35,6 @@ public class MessageParser {
 
     public int getChunkNo() {
         return chunkNo;
-    }
-
-    public int getRepDegree() {
-        return replicationDeg;
     }
 
     public byte[] getBody() {
@@ -82,7 +77,6 @@ public class MessageParser {
         return true;
     }
 
-    // Não sei se é suposto ser Strings ou Bytes, quando for preciso ser chamado vê-se
     // https://stackoverflow.com/questions/5368704/appending-a-byte-to-the-end-of-another-byte
     public static byte[] makeMessage(byte[] body, String... headerString) {
         byte[] header = (String.join(" ", headerString) + CRLF + CRLF).getBytes();
@@ -101,6 +95,7 @@ public class MessageParser {
                 port + " " + CRLF + CRLF).getBytes();
     }
 
+    // https://www.generacodice.com/en/articolo/2980176/java---trimming-trailing-whitespace-from-a-byte-array
     public static byte[] trimming(byte[] input){
         int i = input.length;
         while(i-- > 0 && input[i] == 0) {}
@@ -115,15 +110,7 @@ public class MessageParser {
         return replicationDeg;
     }
 
-    public String getIPAddress() {
-        return ipAddress;
-    }
-
     public int getPort() {
         return port;
-    }
-
-    public void setMessage(byte[] message) {
-        this.message = message;
     }
 }

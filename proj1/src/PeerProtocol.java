@@ -1,18 +1,14 @@
-import javax.swing.plaf.nimbus.State;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class PeerProtocol implements PeerInterface {
-    private final String peerId;
     private final MulticastControlChannel mc;
     private final MulticastDataChannel mdb;
     private final MulticastDataRecovery mdr;
-    // É suposto usar scheduled thread pool executor
     ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(10);
 
-    public PeerProtocol(String version, String peerId, MulticastControlChannel mc, MulticastDataChannel mdb, MulticastDataRecovery mdr) {
-        this.peerId = peerId;
+    public PeerProtocol(MulticastControlChannel mc, MulticastDataChannel mdb, MulticastDataRecovery mdr) {
         this.mc = mc;
         this.mdb = mdb;
         this.mdr = mdr;

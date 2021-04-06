@@ -1,12 +1,11 @@
 import java.io.File;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 class Chunk implements java.io.Serializable{
-    private String fileId;
-    private int chunkNumber;
-    private byte[] body;
-    private String version;
-    private int desiredReplicationDegree;
+    private final String fileId;
+    private final int chunkNumber;
+    private final byte[] body;
+    private final String version;
+    private final int desiredReplicationDegree;
 
     public Chunk(String version, String fileId, int chunkNumber, int desiredReplicationDegree, byte[] body) {
         this.version = version;

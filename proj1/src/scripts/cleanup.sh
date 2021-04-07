@@ -12,16 +12,12 @@
 # Check number input arguments
 argc=$#
 
-echo "Hello"
 
 if ((argc == 1 ))
 then
 	peer_id=$1
-	echo "Hello inside If"
-	cd ../peers/$peer_id/chunks
-    rm *
-    cd ../restored_files
-    rm *
+    rm  peers/$peer_id/chunks/*
+    rm  peers/$peer_id/restored_files/*
 else 
 	echo "Usage: $0 [<peer_id>]]"
 	exit 1

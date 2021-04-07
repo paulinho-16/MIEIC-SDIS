@@ -65,10 +65,5 @@ public class TCPHandler implements Runnable{
                 e.printStackTrace();
             }
         }
-
-           
     }
-
-    
-    
 }

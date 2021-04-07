@@ -47,11 +47,12 @@ public class Peer {
         executor.execute(backupChannel);
         executor.execute(restoreChannel);
 
-
-        ServerSocket serverSocket = new ServerSocket(0);
-        Peer.port = serverSocket.getLocalPort();
-        TCPHandler tcpHandler = new TCPHandler(serverSocket);
-        executor.execute(tcpHandler);
+        if(version.equals("2.0")) {
+            ServerSocket serverSocket = new ServerSocket(0);
+            Peer.port = serverSocket.getLocalPort();
+            TCPHandler tcpHandler = new TCPHandler(serverSocket);
+            executor.execute(tcpHandler);
+        }
 
         try {
             // Create Remote Object (RMI)

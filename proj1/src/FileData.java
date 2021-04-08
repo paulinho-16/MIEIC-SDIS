@@ -32,6 +32,7 @@ public class FileData implements Serializable {
     }
 
     public void addChunk(String chunkID) {
+        System.out.println("CHUNK ID OLE: " + chunkID);
         backupChunks.add(chunkID);
     }
 

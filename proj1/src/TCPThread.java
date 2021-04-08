@@ -16,17 +16,12 @@ public class TCPThread implements Runnable {
             // Initializing the socket
             Socket clientSocket = this.serverSocket.accept();
 
-            System.out.println("PORTA: " + serverSocket.getLocalPort());
-
             // Reading an object
             DataInputStream in = new DataInputStream(clientSocket.getInputStream());
 
             int count = in.available();
-            byte[] data = new byte[65536]; // 64 * 1024 bytes
+            byte[] data = new byte[Peer.CHUNK_SIZE]; // 64 * 1024 bytes
             int number = in.read(data);
-
-            System.out.println("count: " + count);
-            System.out.println("read: " + number);
 
             MessageParser messageParser = new MessageParser(data);
 

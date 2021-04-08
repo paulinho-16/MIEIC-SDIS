@@ -27,8 +27,6 @@ public class GetChunkThread implements Runnable {
         String fileCopy = makeCopyName();
         String copyPath = "peers/" + Peer.getPeerID() + "/restored_files/" + fileCopy;
 
-        DataStored.createFile(copyPath);
-
         while(!Peer.getData().receivedAllChunks(fileID)) {
             try {
                 Thread.sleep(100);
@@ -36,24 +34,36 @@ public class GetChunkThread implements Runnable {
                 e.printStackTrace();
             }
         }
+        DataStored.createFile(copyPath);
+        FileOutputStream fout = null;
+        try{
+            fout = new FileOutputStream(copyPath);
+            for (int i = 0; i < numberChunks; i++) {
+                String chunkID = fileID + "-" + i;
+                if(!Peer.getData().hasReceivedChunk(chunkID)) {
+                    System.out.println("Error: Chunk number " + i + " missing.");
+                    return;
+                }
+                Chunk chunk = Peer.getData().getReceivedChunk(chunkID);
+                Peer.getData().removeReceivedChunk(chunkID);
 
-        for (int i = 0; i < numberChunks; i++) {
-            String chunkID = fileID + "-" + i;
-            if(!Peer.getData().hasReceivedChunk(chunkID)) {
-                System.out.println("Error: Chunk number " + i + " missing.");
-                return;
-            }
-            Chunk chunk = Peer.getData().getReceivedChunk(chunkID);
-            Peer.getData().removeReceivedChunk(chunkID);
 
-            try {
-                FileOutputStream fout = new FileOutputStream(copyPath,true);
                 fout.write(chunk.getData());
+            }
+
+        }catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Error creating file: " + copyPath);
+        }finally {
+            try {
+                assert fout != null;
+                fout.flush();
+                fout.close();
             } catch (IOException e) {
                 e.printStackTrace();
-                System.out.println("Error creating file: " + copyPath);
             }
         }
+
 
         System.out.println("File recovered: " + fileCopy);
     }

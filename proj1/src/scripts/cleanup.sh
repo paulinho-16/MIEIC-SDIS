@@ -18,6 +18,7 @@ then
 	peer_id=$1
     rm  peers/$peer_id/chunks/*
     rm  peers/$peer_id/restored_files/*
+    rm  peers/$peer_id/data.ser
 else 
 	echo "Usage: $0 [<peer_id>]]"
 	exit 1

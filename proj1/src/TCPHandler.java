@@ -12,8 +12,7 @@ public class TCPHandler implements Runnable{
     }
 
     @Override
-    public void run(){
-       
+    public void run() {
         while(true){
             try {
                 new ClientHandler(serverSocket.accept()).start();
@@ -24,7 +23,7 @@ public class TCPHandler implements Runnable{
     }
 
     private static class ClientHandler extends Thread {
-        private Socket clientSocket;
+        private final Socket clientSocket;
 
         public ClientHandler(Socket socket) {
             this.clientSocket = socket;
@@ -34,14 +33,9 @@ public class TCPHandler implements Runnable{
             try {
                 // Reading an object
                 DataInputStream in = new DataInputStream(clientSocket.getInputStream());
-    
-                int count = in.available();
-                byte[] data = new byte[65536]; // 64 * 1024 bytes
-                int number = in.read(data);
-    
-                System.out.println("count: " + count);
-                System.out.println("read: " + number);
-    
+
+                byte[] data = in.readAllBytes();
+
                 MessageParser messageParser = new MessageParser(data);
     
                 // Checking Parsing

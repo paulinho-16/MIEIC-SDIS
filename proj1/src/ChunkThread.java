@@ -39,27 +39,20 @@ public class ChunkThread implements Runnable {
             Peer.executor.execute(new Thread(() -> Peer.getMDRChannel().sendMessage(message)));
         }
         else if (Peer.getVersion().equals("2.0")) {
+            System.out.println("CHUNK LENGTH: " + chunk.getData().length);
             message = MessageParser.makeMessage(chunk.getData(), chunk.getVersion(), "CHUNK", Peer.getPeerID(), fileID, Integer.toString(chunkNumber));
             // Using TCP instead
             try {
                 // Start Connection
-                System.out.println(ipAddress.toString().split("/")[1]);
                 Socket clientSocket = new Socket(ipAddress.toString().split("/")[1], port);
 
                 //servidor.setSoTimeout(400);
 
-                // int port = server.getLocalPort();
-                // String host = InetAddress.getLocalHost().getHostName();
-
-                // Waiting to receive a message
-
-                System.out.println("IPAddress: " + ipAddress);
-                System.out.println("Port: " + port);
-
                 DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
 
                 // Send Message
-                out.write(message, 0, message.length);
+                if (chunk.getData().length > 0)
+                    out.write(message, 0, message.length);
 
                 // Stopping connection
                 out.flush();

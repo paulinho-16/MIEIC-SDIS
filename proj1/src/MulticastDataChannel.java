@@ -32,7 +32,8 @@ public class MulticastDataChannel extends MulticastChannel {
             // Reading the correct amount of bytes
             if(availableBytes > Peer.CHUNK_SIZE) {
                 chunkData = new byte[Peer.CHUNK_SIZE];
-            } else {
+            }
+            else {
                 chunkData = new byte[availableBytes];
             }
             in.read(chunkData);
@@ -46,6 +47,13 @@ public class MulticastDataChannel extends MulticastChannel {
             Peer.executor.execute(new PutChunkThread(message, fileID, chunkCount, replicationDegree));
 
             chunkCount++;
+
+            if(availableBytes == Peer.CHUNK_SIZE) {
+                byte[] messageChunkData1 =  MessageParser.makeMessage(new byte[0], Peer.getVersion(), "PUTCHUNK", this.peerID , fileID, Integer.toString(chunkCount), Integer.toString(replicationDegree));
+                chunkID = fileID + "-" + chunkCount;
+                filedata.addChunk(chunkID);
+                Peer.executor.execute(new PutChunkThread(messageChunkData1, fileID, chunkCount, replicationDegree));
+            }
         }
 
         // TODO: Caso em que file size é múltiplo de 64kb já está incluído no ciclo de cima? testar.

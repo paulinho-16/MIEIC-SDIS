@@ -55,8 +55,13 @@ public class MessageParser {
         }
 
         // Get body from the message
-        byte[] temp = Arrays.copyOfRange(message, i+4, message.length);
-        this.body = trimming(temp);
+        System.out.println("Lenght :" + message.length);
+        System.out.println("i: " + i);
+        if(message.length != 82){
+            this.body = Arrays.copyOfRange(message, i+4, message.length);
+        }
+
+        // TODO CORRIGIR PARA CASO DO 0
 
         // Get header from the message
         String header = new String(Arrays.copyOfRange(message, 0, i));  // Get Header from the message

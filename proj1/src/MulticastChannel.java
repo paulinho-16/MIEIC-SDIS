@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Arrays;
 
 public class MulticastChannel implements Runnable {
     protected final InetAddress addr;
@@ -36,7 +37,8 @@ public class MulticastChannel implements Runnable {
                 // Waiting to receive a packet
                 DatagramPacket requestPacket = new DatagramPacket(msgReceived, msgReceived.length);
                 this.multicastSocket.receive(requestPacket);
-                Peer.executor.execute(new MessageHandler(requestPacket.getData(), this.peerID, requestPacket.getAddress()));
+                byte[] realData = Arrays.copyOf(requestPacket.getData(), requestPacket.getLength());
+                Peer.executor.execute(new MessageHandler(realData, this.peerID, requestPacket.getAddress()));
             }
         } catch(Exception e) {
             e.printStackTrace();

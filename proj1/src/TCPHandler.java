@@ -13,7 +13,7 @@ public class TCPHandler implements Runnable{
 
     @Override
     public void run() {
-        while(true){
+        while(true) {
             try {
                 new ClientHandler(serverSocket.accept()).start();
             } catch (IOException e) {
@@ -37,7 +37,7 @@ public class TCPHandler implements Runnable{
                 byte[] data = in.readAllBytes();
 
                 MessageParser messageParser = new MessageParser(data);
-    
+
                 // Checking Parsing
                 if (!messageParser.parse()) {
                     System.out.println("Error parsing message");

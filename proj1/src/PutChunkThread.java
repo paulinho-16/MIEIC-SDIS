@@ -18,11 +18,10 @@ public class PutChunkThread implements Runnable {
     @Override
     public void run() {
         int numReplications = Peer.getData().getChunkReplicationNum(chunkID);
-        System.out.println("NumReplications: " + numReplications + " numResend: " + numResends + " RepDegree " + replicationDegree + " Chunk " + chunkID + " Delay " + delay);
 
         // The number of chunk replications is lower than the desired replication degree: resend PUTCHUNK message
         if (numReplications < replicationDegree) {
-            System.out.println("MDB sending :: PUTCHUNK chunk " + chunkID + " Sender " + Peer.getPeerID());
+            System.out.println("MDB sending :: PUTCHUNK chunk " + chunkID + " Sender " + Peer.getPeerID() + " NumSend " + numResends + " Delay " + delay);
             Peer.executor.execute(new Thread(() ->
                 Peer.getMDBChannel().sendMessage(message)
             ));

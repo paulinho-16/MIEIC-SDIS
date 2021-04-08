@@ -1,6 +1,5 @@
 import java.io.*;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -55,7 +54,6 @@ public class MulticastControlChannel extends MulticastChannel {
 
             System.out.println("MC sending :: GETCHUNK Sender " + peerID + " file "+ fileID + "chunk " + chunkNumber);
         }
-
         Peer.executor.execute(new GetChunkThread(path, fileID, peerID, totalChunks));
     }
 

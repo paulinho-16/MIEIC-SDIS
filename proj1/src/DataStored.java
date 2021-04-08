@@ -17,7 +17,7 @@ public class DataStored implements Serializable {
     private final CopyOnWriteArraySet<String> deletedFiles = new CopyOnWriteArraySet<>();
 
     public DataStored() {
-        this.totalSpace = 30000000; // Default Value: 30MB
+        this.totalSpace = 500000000; // Default Value: 500MB
         this.occupiedSpace = 0;
     }
 

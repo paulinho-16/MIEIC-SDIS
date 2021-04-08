@@ -82,4 +82,4 @@ esac
 
 java TestApp ${pap} ${oper} ${opernd_1} ${rep_deg}
 
-read  -n 1 -p "Input Selection:" mainmenuinput
+#read  -n 1 -p "Input Selection:" mainmenuinput

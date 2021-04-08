@@ -39,7 +39,6 @@ public class ChunkThread implements Runnable {
             Peer.executor.execute(new Thread(() -> Peer.getMDRChannel().sendMessage(message)));
         }
         else if (Peer.getVersion().equals("2.0")) {
-            System.out.println("CHUNK LENGTH: " + chunk.getData().length);
             message = MessageParser.makeMessage(chunk.getData(), chunk.getVersion(), "CHUNK", Peer.getPeerID(), fileID, Integer.toString(chunkNumber));
             // Using TCP instead
             try {
@@ -51,8 +50,7 @@ public class ChunkThread implements Runnable {
                 DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
 
                 // Send Message
-                if (chunk.getData().length > 0)
-                    out.write(message, 0, message.length);
+                out.write(message, 0, message.length);
 
                 // Stopping connection
                 out.flush();

@@ -55,13 +55,7 @@ public class MessageParser {
         }
 
         // Get body from the message
-        System.out.println("Lenght :" + message.length);
-        System.out.println("i: " + i);
-        if(message.length != 82){
-            this.body = Arrays.copyOfRange(message, i+4, message.length);
-        }
-
-        // TODO CORRIGIR PARA CASO DO 0
+        this.body = Arrays.copyOfRange(message, i+4, message.length);
 
         // Get header from the message
         String header = new String(Arrays.copyOfRange(message, 0, i));  // Get Header from the message
@@ -88,6 +82,7 @@ public class MessageParser {
         byte[] message = new byte[header.length + body.length];
         System.arraycopy(header, 0, message, 0, header.length);
         System.arraycopy(body, 0, message, header.length, body.length);
+
         return message;
     }
 
@@ -98,17 +93,6 @@ public class MessageParser {
     public static byte[] makeGetChunkMessage(String port, String... headerString){
         return (String.join(" ", headerString) + " " + CRLF +
                 port + " " + CRLF + CRLF).getBytes();
-    }
-
-    // https://www.generacodice.com/en/articolo/2980176/java---trimming-trailing-whitespace-from-a-byte-array
-    public static byte[] trimming(byte[] input){
-        int i = input.length;
-        while(i-- > 0 && input[i] == 0) {}
-
-        byte[] output = new byte[i+1];
-        System.arraycopy(input,0,output,0,i+1);
-
-        return output;
     }
 
     public int getReplicationDegree() {

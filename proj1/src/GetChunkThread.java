@@ -12,14 +12,18 @@ public class GetChunkThread implements Runnable {
         this.numberChunks = numberChunks;
     }
 
-    // https://stackoverflow.com/questions/4545937/java-splitting-the-filename-into-a-base-and-extension
     public String makeCopyName() {
-        String[] tokens = path.split("\\.(?=[^\\.]+$)");
-        String[] pathLevels = tokens[0].split(".+?/(?=[^/]+$)");
-        String baseName = pathLevels[1];
-        String extension = tokens[1];
+        String[] newTokens = path.split("/");
+        String filename = newTokens[newTokens.length - 1];
 
-        return baseName + "_copy." + extension;
+        String[] parts = filename.split("\\.");
+        String baseName = parts[0];
+        if (parts.length > 1) {
+            String extension = parts[parts.length-1];
+            return baseName + "_copy." + extension;
+        }
+
+        return baseName + "_copy";
     }
 
     @Override
@@ -34,6 +38,7 @@ public class GetChunkThread implements Runnable {
                 e.printStackTrace();
             }
         }
+
         DataStored.createFile(copyPath);
         FileOutputStream fout = null;
         try{
@@ -63,7 +68,6 @@ public class GetChunkThread implements Runnable {
                 e.printStackTrace();
             }
         }
-
 
         System.out.println("File recovered: " + fileCopy);
     }

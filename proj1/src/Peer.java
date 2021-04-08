@@ -81,7 +81,6 @@ public class Peer {
             // Send HELLO Message
             System.out.println("MC sending :: HELLO Sender " + Peer.getPeerID());
             byte[] message = MessageParser.makeHeader(Peer.getVersion(), "HELLO", Peer.peerID);
-            // Meter delay ???
             Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
         }
     }

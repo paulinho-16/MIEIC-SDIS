@@ -6,6 +6,8 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import javax.sound.sampled.Port;
+
 public class Peer {
     // Constructor parameters
     private static String peerID;
@@ -27,6 +29,8 @@ public class Peer {
     public static final int CHUNK_SIZE = 64000; // Chunk maximum size is 64KB
     public static final String DIRECTORY = "peers/";
 
+    public static int port;
+
     public Peer(String version, String peerID, String accessPoint, InetAddress mcAddr, int mcPort, InetAddress mdbAddr, int mdbPort, InetAddress mdrAddr, int mdrPort) throws IOException {
         Peer.version = version;
         Peer.peerID = peerID;
@@ -42,6 +46,13 @@ public class Peer {
         executor.execute(controlChannel);
         executor.execute(backupChannel);
         executor.execute(restoreChannel);
+
+        if(version.equals("2.0")) {
+            ServerSocket serverSocket = new ServerSocket(0);
+            Peer.port = serverSocket.getLocalPort();
+            TCPHandler tcpHandler = new TCPHandler(serverSocket);
+            executor.execute(tcpHandler);
+        }
 
         try {
             // Create Remote Object (RMI)

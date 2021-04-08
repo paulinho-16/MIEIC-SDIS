@@ -43,22 +43,26 @@ public class MulticastControlChannel extends MulticastChannel {
             Peer.getData().addWaitingChunk(chunkID);
 
             if(Peer.getVersion().equals("2.0")) {
-                try {
-                    ServerSocket socket = new ServerSocket(0);
-                    int port = socket.getLocalPort();
-
+                //try {
+                    //ServerSocket socket = new ServerSocket(0);
+                    //int port = socket.getLocalPort();
+                    int port = Peer.port;
                     // Creating alternative header
                     message = MessageParser.makeGetChunkMessage(Integer.toString(port),Peer.getVersion(), "GETCHUNK", Peer.getPeerID() , fileID, Integer.toString(chunkNumber));
                     Peer.executor.execute(new Thread(() -> sendMessage(message)));
 
                     // Raise waiting thread
+                    /*
                     TCPThread tcpThread = new TCPThread(socket);
                     Peer.executor.execute(tcpThread);
-                }
+                    */
+                //}
+                /*
                 catch (IOException e) {
                     e.printStackTrace();
                     System.out.println("Error on TCP port usage: Server Side");
                 }
+                */
             }
             else {
                 message = MessageParser.makeHeader(Peer.getVersion(), "GETCHUNK", peerID , fileID, Integer.toString(chunkNumber));

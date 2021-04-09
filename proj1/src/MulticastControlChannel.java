@@ -54,7 +54,6 @@ public class MulticastControlChannel extends MulticastChannel {
 
             System.out.println("MC sending :: GETCHUNK Sender " + peerID + " file "+ fileID + "chunk " + chunkNumber);
         }
-        Peer.executor.execute(new GetChunkThread(path, fileID, peerID, totalChunks));
     }
 
     public void delete( String filename) {

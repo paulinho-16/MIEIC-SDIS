@@ -2,13 +2,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class GetChunkThread implements Runnable {
-    String path, fileID, senderID;
+    String path, fileID;
     int numberChunks;
 
-    public GetChunkThread(String path, String fileID, String senderID, int numberChunks) {
+    public GetChunkThread(String path, String fileID, int numberChunks) {
         this.path = path;
         this.fileID = fileID;
-        this.senderID = senderID;
         this.numberChunks = numberChunks;
     }
 
@@ -30,17 +29,6 @@ public class GetChunkThread implements Runnable {
     public void run() {
         String fileCopy = makeCopyName();
         String copyPath = Peer.getRestoredFilesPath() + "/" + fileCopy;
-
-        while(!Peer.getData().receivedAllChunks(fileID)) {
-            /*
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-             */
-        }
 
         DataStored.createFile(copyPath);
         FileOutputStream fout = null;

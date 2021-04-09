@@ -81,7 +81,6 @@ public class MessageHandler implements Runnable {
             Peer.getData().addChunkMessagesSent(chunkID);
         }
 
-
     }
 
     private void handleDELETE() {

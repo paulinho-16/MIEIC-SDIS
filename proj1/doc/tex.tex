@@ -53,7 +53,7 @@ commentstyle=\color{javagreen},
 morecomment=[s][\color{javadocblue}]{/**}{*/},
 numbers=left,
 numberstyle=\tiny\color{black},
-stepnumber=2,
+stepnumber=1,
 numbersep=10pt,
 tabsize=4,
 showspaces=false,
@@ -143,9 +143,26 @@ Despite this, every other type is accepted but ignored, for interoperability pur
 // meter print do run() do MulticastChannel
 
 Finally, the majority of the functions responsible for handling each message type launches a new thread which will execute the requested protocol.
-This is done using the method schedule of the ScheduledThreadPoolExecutor, 
+This is done using the method schedule of the ScheduledThreadPoolExecutor, which initializes the desired thread only after the given delay.
+We followed the project's enunciate advice of using a random delay uniformly distributed between 0 and 400 milliseconds.
+That way, we lower the probability of the protocol being executed at the exact same time by different peers, avoiding "collisions" and assuring that the many peers that received the same message start and finish the required protocol at different times.
 
-//
+// meter print de algumas funções do Messagehandler que façam isto
+
+A different thread is also launched every time we need to send a message to the multicast channels, which will execute the function sendMessage() of the MulticastChannel class, after a random delay.
+
+// meter print da função sendMessage()
+
+On the other side, the TestApp class starts by parsing the command line arguments and requesting the desired protocol.
+This is done by calling the corresponding function of the PeerProtocol object of the peer with the RMI object name given as input to the TestApp.
+After this, the function will start a new thread, responsible for executing that protocol, in the vision of the initiator peer.
+
+// meter prints dos métodos da PeerProtocol
+
+Finally, during some protocols, some new threads are raised with the objective of executing some minor tasks at the same time that the main protocol is ocurring.
+The class PutChunkThread is an example of these calls, since it happens during the backup protocol, and for each 
+
+// acabar
 
 \section{Enhancements}
 
@@ -189,10 +206,44 @@ Although the aforementioned procedure would present as a solution, we have decid
 as it would flood the multicast channels with several other messages without significantly reducing the space depletion problem.
 
 
-
-
-
 \subsection{Restore Enhancement}
+
+This enhancment was designed to avoid sending all the file's chunks throung a UDP Multicast channel. As a matter of fact, the 1.0 version is incapable of restoring large files.
+given that the UDP protocol is unreliable and there is too much data being continuously sent through the multicast channel, many packets were often missing, and most of them would not even be read,
+since only the initiator peer would utilize the body of the message.
+
+In order to solve this problem, we came up with a solution by using the TCP protocol to exchange the body of the message between the CHUNK message and the initiator peer requesting the protocol.
+
+First, we initialized the TCPHandler thread, which is blocked in a while loop, initializing a ClientHandler thread whenever there is a Client Socket initializing the TCP connection.
+
+\begin{lstlisting}[language=java]
+public class TCPHandler implements Runnable{
+
+@Override
+public void run() {
+	while(true) {
+		try {
+			new ClientHandler(serverSocket.accept()).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}
+...
+}
+\end{lstlisting}
+
+The ClientHandler thread reads a CHUNK message through the estabilished TCP connection, and restores the file as soon as all the chunks have been received, by launching a GetChunkThread.
+
+The estabilishment of the server side TCP connection is made for each chunk after a Peer that contains its backup initializes a clientSocket in the ChunkThread class.
+
+In order to implement this enhancement, we have changed the header of the GETCHUNK subprotocol by adding an extra line containing the ServerSocket port of the initiator Peer.
+This port is essencial to estabilish the TCP connection, as well as the ipAdrress used for the server socket, which is not sent in the message header, given that it can already be accessed
+via the UDP Multicast DatagramPacket getAddress() method.
+
+Even though the body of the message is now being sent through a TCP connection to the initiator peer, the multicast channel is still used to send the of the 
+CHUNK message. Such is necessary because all peers must update their storage to be able to know if the packet has already been sent by another peer.
+
 
 
 \subsection{Delete Enhancement}

@@ -6,8 +6,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import javax.sound.sampled.Port;
-
 public class Peer {
     // Constructor parameters
     private static String peerID;
@@ -18,12 +16,16 @@ public class Peer {
     private static MulticastDataRecovery restoreChannel;
     // Paths
     private static String serializationPath;
+    private static String chunksPath;
+    private static String personalFilesPath;
+    private static String restoredFilesPath;
+
     // Protocol
     private static PeerProtocol peerProtocol;
     // Peer stored data
     private static DataStored data = new DataStored();
     // Initializing thread pool executor as a scheduled
-    static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(250);
+    public static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(250);
 
     // Macros
     public static final int CHUNK_SIZE = 64000; // Chunk maximum size is 64KB
@@ -72,15 +74,15 @@ public class Peer {
         String chunksPath, personalFilesPath, restoredFilesPath;
 
         // Creating directories for the peer data
-        chunksPath = DIRECTORY + peerID + "/chunks";
-        personalFilesPath = DIRECTORY + peerID + "/personal_files";
-        restoredFilesPath = DIRECTORY + peerID + "/restored_files";
+        Peer.chunksPath = DIRECTORY + peerID + "/chunks";
+        Peer.personalFilesPath = DIRECTORY + peerID + "/personal_files";
+        Peer.restoredFilesPath = DIRECTORY + peerID + "/restored_files";
         serializationPath = DIRECTORY + peerID + "/data.ser";
 
         createDirectory(DIRECTORY + peerID);
-        createDirectory(chunksPath);
-        createDirectory(personalFilesPath);
-        createDirectory(restoredFilesPath);
+        createDirectory(Peer.chunksPath);
+        createDirectory(Peer.personalFilesPath);
+        createDirectory(Peer.restoredFilesPath);
 
         // Reads the serialized data from the peer
         loadChunks();
@@ -122,6 +124,18 @@ public class Peer {
 
     public static PeerProtocol getPeerProtocol() {
         return peerProtocol;
+    }
+
+    public static String getPersonalFilesPath() {
+        return personalFilesPath;
+    }
+
+    public static String getChunksPath() {
+        return chunksPath;
+    }
+
+    public static String getRestoredFilesPath() {
+        return restoredFilesPath;
     }
 
     private void createDirectory(String path) {

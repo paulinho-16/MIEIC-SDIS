@@ -9,13 +9,24 @@ public class MulticastDataChannel extends MulticastChannel {
         super(addr, port, peerID);
     }
 
-    public void backup(String path, int replicationDegree) throws IOException {
-        if(path == null || replicationDegree < 1) {
-            throw new IllegalArgumentException("Invalid filepath or replicationDegree");
+    public void backup(String filename, int replicationDegree) throws IOException {
+
+        if(filename == null) {
+            throw new IllegalArgumentException("Invalid filename");
+        }
+
+        if (replicationDegree < 1) {
+            throw new IllegalArgumentException("Invalid replicationDegree: value must be greater or equal to 1");
         }
 
         // Creating new file if it doesn't exist
+        String path = Peer.getPersonalFilesPath() + "/" + filename;
+
         File file = new File(path);
+
+        if (!file.exists()) {
+            throw new IllegalArgumentException("File " + filename + " doesn't belong to this peer.");
+        }
 
         FileInputStream in = new FileInputStream(file);
 
@@ -25,7 +36,7 @@ public class MulticastDataChannel extends MulticastChannel {
         String fileID = this.createId(this.peerID, path, file.lastModified());
 
         // Add the file to the peer's list of backed up files
-        Peer.getData().addNewFileToMap(new FileData(path, fileID, replicationDegree));
+        Peer.getData().addNewFileToMap(new FileData(filename, fileID, replicationDegree));
 
         // While there are still bytes that can be read
         while((availableBytes = in.available()) > 0) {
@@ -55,7 +66,5 @@ public class MulticastDataChannel extends MulticastChannel {
                 Peer.executor.execute(new PutChunkThread(messageChunkData1, fileID, chunkCount, replicationDegree));
             }
         }
-
-        // TODO: Caso em que file size é múltiplo de 64kb já está incluído no ciclo de cima? testar.
     }
 }

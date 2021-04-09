@@ -177,7 +177,7 @@ public class DataStored implements Serializable {
 
         // Writing the Chunk to a file
         try {
-            String path = Peer.DIRECTORY + Peer.getPeerID() + "/chunks/" + chunk.getFileID() + "-" + chunk.getChunkNumber();
+            String path = Peer.getChunksPath() + "/" + chunk.getFileID() + "-" + chunk.getChunkNumber();
             File file = createFile(path);
             assert file != null: "Chunk file hasn't been created";
             FileOutputStream fout = new FileOutputStream(file);
@@ -298,7 +298,7 @@ public class DataStored implements Serializable {
         else {
             for (String key : personalBackedUpFiles.keySet()) {
                 FileData fileData = personalBackedUpFiles.get(key);
-                builder.append("\n\tPathname: ").append(fileData.getPath());
+                builder.append("\n\tPathname: ").append(Peer.getPersonalFilesPath()).append("/").append(fileData.getFilename());
                 builder.append("\n\tFileID: ").append(fileData.getFileID());
                 int desiredRepDegree = fileData.getReplicationDegree();
                 builder.append("\n\tDesired Replication Degree: ").append(desiredRepDegree);
@@ -355,27 +355,11 @@ public class DataStored implements Serializable {
         }
     }
 
-    public void updateDeletedFiles(String senderID) {
-        // Enviar só DELETE para os ficheiros que o sender que enviou o HELLO tem ???
-        /*for(String fileID : deletedFiles) {
-            if (hasFileData(fileID)) {
-                for(String chunkID : chunksRepDegrees.keySet()) {
-                    String chunkFileID = chunkID.split("-")[0];
-                    if (chunkFileID.equals(fileID)) {
-                        CopyOnWriteArraySet<String> peersBackingUp = chunksRepDegrees.get(chunkID);
-                        if (peersBackingUp.contains(senderID)) {
-                            String path = getFileData(fileID).getPath();
-                            Peer.getMCChannel().delete(path);
-                        }
-                    }
-                }
-            }
-        }*/
-
+    public void updateDeletedFiles() {
         for(String fileID : deletedFiles) {
             if(hasFileData(fileID)) {
-                String path = getFileData(fileID).getPath();
-                Peer.getPeerProtocol().delete(path);
+                String filename = getFileData(fileID).getFilename();
+                Peer.getPeerProtocol().delete(filename);
             }
         }
     }

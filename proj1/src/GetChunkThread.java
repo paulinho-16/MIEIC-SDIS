@@ -29,14 +29,17 @@ public class GetChunkThread implements Runnable {
     @Override
     public void run() {
         String fileCopy = makeCopyName();
-        String copyPath = "peers/" + Peer.getPeerID() + "/restored_files/" + fileCopy;
+        String copyPath = Peer.getRestoredFilesPath() + "/" + fileCopy;
 
         while(!Peer.getData().receivedAllChunks(fileID)) {
+            /*
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+
+             */
         }
 
         DataStored.createFile(copyPath);

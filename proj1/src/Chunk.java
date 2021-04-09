@@ -44,7 +44,7 @@ class Chunk implements java.io.Serializable{
     }
 
     public boolean delete() {
-        File file = new File(Peer.DIRECTORY + Peer.getPeerID() + "/chunks/" + fileId + "-" + chunkNumber);
+        File file = new File(Peer.getChunksPath() + "/" + fileId + "-" + chunkNumber);
         return file.delete();
     }
 }

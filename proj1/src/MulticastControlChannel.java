@@ -20,11 +20,11 @@ public class MulticastControlChannel extends MulticastChannel {
         Peer.getData().updateChunkReplicationsNum(chunk.getFileID(), chunk.getChunkNumber(), this.peerID);
     }
 
-    public void restore(String path) {
-        if(path == null) {
-            throw new IllegalArgumentException("Invalid filepath");
+    public void restore(String filename) {
+        if(filename == null) {
+            throw new IllegalArgumentException("Invalid filename");
         }
-
+        String path = Peer.getPersonalFilesPath() + "/" + filename;
         File file = new File(path);
         String fileID = createId(peerID, path, file.lastModified());
         if (!Peer.getData().hasFileData(fileID)) {
@@ -57,10 +57,12 @@ public class MulticastControlChannel extends MulticastChannel {
         Peer.executor.execute(new GetChunkThread(path, fileID, peerID, totalChunks));
     }
 
-    public void delete( String path) {
-        if (path == null) {
-            throw new IllegalArgumentException("Invalid filepath");
+    public void delete( String filename) {
+        if (filename == null) {
+            throw new IllegalArgumentException("Invalid filename");
         }
+
+        String path = Peer.getPersonalFilesPath() + "/" + filename;
 
         File file = new File(path);
         String fileID = this.createId(this.peerID, path, file.lastModified());

@@ -2,21 +2,21 @@ import java.io.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public class FileData implements Serializable {
-    private final String path;
+    private final String filename;
     private final String fileID;
     private final int replicationDegree;
 
     // CopyOnWriteArraySet<chunkID>
     private final CopyOnWriteArraySet<String> backupChunks = new CopyOnWriteArraySet<>();
 
-    public FileData(String path, String fileID, int replicationDegree) {
-        this.path = path;
+    public FileData(String filename, String fileID, int replicationDegree) {
+        this.filename = filename;
         this.fileID = fileID;
         this.replicationDegree = replicationDegree;
     }
 
-    public String getPath() {
-        return path;
+    public String getFilename() {
+        return filename;
     }
 
     public String getFileID() {
@@ -32,7 +32,6 @@ public class FileData implements Serializable {
     }
 
     public void addChunk(String chunkID) {
-        System.out.println("CHUNK ID OLE: " + chunkID);
         backupChunks.add(chunkID);
     }
 

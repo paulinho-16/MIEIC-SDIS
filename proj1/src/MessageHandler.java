@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +41,8 @@ public class MessageHandler implements Runnable {
     }
 
     private void handlePUTCHUNK() {
-        System.out.println("MessageHandler receiving :: PUTCHUNK chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
+        String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
+        System.out.println("MessageHandler receiving :: PUTCHUNK chunk " + chunkID + " Sender " + this.messageParser.getSenderID());
         Random delay = new Random();
         Peer.executor.schedule(new Thread(() -> {
             Chunk chunk = new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getReplicationDegree(), this.messageParser.getBody());
@@ -50,7 +52,8 @@ public class MessageHandler implements Runnable {
     }
 
     private void handleSTORED() {
-        System.out.println("MessageHandler receiving :: STORED chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
+        String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
+        System.out.println("MessageHandler receiving :: STORED chunk " + chunkID + " Sender " + this.messageParser.getSenderID());
         Peer.getData().updateChunkReplicationsNum(this.messageParser.getFileID(), this.messageParser.getChunkNo(), this.messageParser.getSenderID());
     }
 
@@ -77,6 +80,8 @@ public class MessageHandler implements Runnable {
         else {
             Peer.getData().addChunkMessagesSent(chunkID);
         }
+
+
     }
 
     private void handleDELETE() {
@@ -120,21 +125,36 @@ public class MessageHandler implements Runnable {
         System.out.println("MessageHandler receiving :: REMOVED chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
         String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
         Peer.getData().removePeerBackingUpChunk(chunkID, this.messageParser.getSenderID());
+        /*
+        if(Peer.getData().hasChunkBackup(chunkID)) {
+            Chunk chunk = Peer.getData().getChunkBackup(chunkID);
+            int currentRepDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
+            int desiredRepDegree = chunk.getDesiredReplicationDegree();
+            if (currentRepDegree < desiredRepDegree) {
+                byte[] message = MessageParser.makeMessage(chunk.getData(), this.messageParser.getVersion(), "PUTCHUNK", Peer.getPeerID(), this.messageParser.getFileID(), Integer.toString(this.messageParser.getChunkNo()), Integer.toString(desiredRepDegree));
+                Random delay = new Random();
+                PutChunkThread putChunkThread = new PutChunkThread(message, this.messageParser.getFileID(), this.messageParser.getChunkNo(), desiredRepDegree);
+                Peer.executor.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
+            }
+        }
+        */
 
-        // Verify if the peer has a local copy of the chunk removed
+        // Verify if it's the initiator peer
         if (Peer.getData().hasFileData(this.messageParser.getFileID())) {
             FileData filedata = Peer.getData().getFileData(this.messageParser.getFileID());
             int currentRepDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
             int desiredRepDegree = filedata.getReplicationDegree();
-            // If the chunk doesn't have the desired Replication Degree, resend PUTCHUNK messages
+            // If the chunk doesn't have the desired Replication Degree, start backup protocol
             if (currentRepDegree < desiredRepDegree) {
-                System.out.println(this.messageParser.getSenderID());
-                System.out.println(Peer.getPeerID());
-                byte[] message = MessageParser.makeMessage(this.messageParser.getBody(), this.messageParser.getVersion(), "PUTCHUNK", Peer.getPeerID(), this.messageParser.getFileID(), Integer.toString(this.messageParser.getChunkNo()), Integer.toString(desiredRepDegree));
                 Random delay = new Random();
-
-                PutChunkThread putChunkThread = new PutChunkThread(message, this.messageParser.getFileID(), this.messageParser.getChunkNo(), desiredRepDegree);
-                Peer.executor.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
+                Peer.executor.schedule(new Thread(() -> {
+                    try {
+                        System.out.println(filedata.getFilename());
+                        Peer.getMDBChannel().backup(filedata.getFilename(), desiredRepDegree);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }), delay.nextInt(401), TimeUnit.MILLISECONDS);
             }
         }
     }
@@ -143,7 +163,7 @@ public class MessageHandler implements Runnable {
         System.out.println("MessageHandler receiving :: HELLO Sender " + this.messageParser.getSenderID());
 
         if (Peer.getVersion().equals("2.0")) {
-            Peer.getData().updateDeletedFiles(this.messageParser.getSenderID());
+            Peer.getData().updateDeletedFiles();
         }
     }
 }

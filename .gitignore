@@ -28,3 +28,5 @@ g02.iml
 *.aux
 *.toc
 *.gz
+*.fls
+*.fdb_latexmk

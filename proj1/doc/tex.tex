@@ -5,16 +5,20 @@
 \usepackage{graphicx}
 \usepackage{subfig}
 \usepackage[section]{placeins}
+\usepackage{amssymb} % for \smallsetminus
 
-\usepackage{xcolor}
+\usepackage{lmodern}  % for bold teletype font
+\usepackage{amsmath}  % for \hookrightarrow
+\usepackage{xcolor}   % for \textcolor
 \usepackage{listings}
-\usepackage{float}
-\usepackage{capt-of}
 
-\definecolor{mGreen}{rgb}{0,0.6,0}
-\definecolor{mGray}{rgb}{0.5,0.5,0.5}
-\definecolor{mPurple}{rgb}{0.58,0,0.82}
-\definecolor{backgroundColour}{rgb}{0.95,0.95,0.92}
+\lstset{
+  basicstyle=\ttfamily,
+  columns=fullflexible,
+  frame=single,
+  breaklines=true,
+  postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+}
 
 \lstdefinestyle{CStyle}{
     backgroundcolor=\color{backgroundColour},   
@@ -36,10 +40,24 @@
     language=C
 }
 
-
-
-
-
+\definecolor{javared}{rgb}{0.6,0,0} % for strings
+\definecolor{javagreen}{rgb}{0.25,0.5,0.35} % comments
+\definecolor{javapurple}{rgb}{0.5,0,0.35} % keywords
+\definecolor{javadocblue}{rgb}{0.25,0.35,0.75} % javadoc
+ 
+\lstset{language=Java,
+basicstyle=\ttfamily,
+keywordstyle=\color{javapurple}\bfseries,
+stringstyle=\color{javared},
+commentstyle=\color{javagreen},
+morecomment=[s][\color{javadocblue}]{/**}{*/},
+numbers=left,
+numberstyle=\tiny\color{black},
+stepnumber=2,
+numbersep=10pt,
+tabsize=4,
+showspaces=false,
+showstringspaces=false}
 
 \begin{document}
 
@@ -86,22 +104,98 @@
 \pagebreak
 
 \section*{Introduction}
+This report is dividided into two sections
 
+\begin{itemize}
+	\item Enhancements - Explanation of the implemented protocol enhancements
+	\begin{itemize}
+		\item Backup Enhancement  
+		\item Restore Enhancement 
+		\item Delete Enhancement 
+	\end{itemize}
+	\item Concurrency - Explanation of Concurrency implementation in our project
+\end{itemize}
+
+\section{Concurrency Design}
+
+This section analyzes our implementation of the concurrent execution of instances of the required protocols.
+Both versions of the developed program allow simultaneous executions of these protocols, requested by different initiator peers.
+
+When a peer is initialized, the class PeerInitializer starts by storing the input parameters, including the multicast channels IP adresses and ports.
+Then, it invokes the class Peer, which will be responsible for initializing the three multicast channels:
+ - MulticastControlChannel, used for control messages.
+ - MulticastDataChannel, used for backing up file chunk data.
+ - MulticastDataRecovery, used for restoring file chunk data.
+
+// meter print das chamadas do executor e criação
+
+Each of these classes extends the class MulticastChannel, which implements the Java Runnable Interface, in order to execute code on a concurrent thread.
+This interface requires the implementation of the method run(), with void as return type, by the instances of that class.
+This way, each channel is executed as a single thread, by an object of class ScheduledThreadPoolExecutor with a core pool size of 250 threads, to avoid creating a new thread for each execution needed, since creating and terminating threads has some overhead.
+When they are executed, the MulticastChannel run() method will be called, which consists of an infinite while loop, whose function is to receive data packets corresponding to the messages to be interchanged by the peers.
+
+Whenever a message is received, the peer's ScheduledThreadPoolExecutor, which we will designate "executor" in this report, starts a new thread of the class MessageHandler, that also implements the interface Runnable.
+In this class, the message received will be parsed by the class MessageParser, in other words the message components will be divided, to be used in the future.
+One of those components is the sender ID, which is compared to the ID of the peer that received the message, in order to ignore self-messages.
+Another component is the message type, used to decide what protocol will be executed. Our program has protocols defined for the messages of types PUTCHUNK, STORED, GETCHUNK, CHUNK, DELETE, REMOVED, DELETED and HELLO (some of this only executed on enhanced version, 2.0).
+Despite this, every other type is accepted but ignored, for interoperability purposes.
+
+// meter print do run() do MulticastChannel
+
+Finally, the majority of the functions responsible for handling each message type launches a new thread which will execute the requested protocol.
+This is done using the method schedule of the ScheduledThreadPoolExecutor, 
+
+//
 
 \section{Enhancements}
 
-We have implemented all required enchancements, which will be described i the following subsections. In order to run the project with the implemented enhancements, each peer must be initialized with the version argument 2.0
+We have implemented all required enhancements, which will be described in the following subsections.
+
+In order to run the project with the implemented enhancements, each peer must be initialized with the version argument 2.0
+
+Example of initialization of one peer:
+\[..\setminus scripts\setminus peer.sh 2.0 1 Peer1 225.0.0.1 8000 225.0.0.1 8001 225.0.0.1 8002\]
 
 \subsection{Backup Enhancement}
-The 1.0 version of the project would deplete the backup space rather quickly, as the 
+Since the 1.0 version of the Backup protocol only verifies the replication degree before sending a PUTCHUNK message via UDP Multicast, if the chunk is sent correctly,
+all remaining peers will store the chunk, as long as the replication degree value is fullfilled.
+
+This scheme is problematic, since it depletes the the backup space rather quickly by storing unnecessary addicional chunks.
+
+We have solved this problem using a simple and efficient method.
+
+Since all Peers are aware of the replication degree of every chunk, via our chunkRepDegrees ConcurrentHashMap, we are able to verify if a given chunk is already being stored
+by another Peer. Hence we have fixed this issue by prohibiting the storage of a new chunk if another peer has already been responsible for saving it.
+
+\begin{lstlisting}[language=java]
+// Backup enhancement
+if(Peer.getVersion().equals("2.0")) {
+	int chunkRepDeg = getChunkReplicationNum(chunkID);
+	int desiredRepDeg = chunk.getDesiredReplicationDegree();
+	if (chunkRepDeg >= desiredRepDeg) {
+		System.out.println("Chunk " + chunkID + " already fulfilled repDegree. Ignoring chunk...");
+		return;
+	}
+}
+\end{lstlisting}
+
+Although this method is simple, it is not perfect.
+Given there are many concurrent threads running attempting to backup the chunk, there are read and write operation constantly being issued to the hashMap.
+Even though the data structure is thread safe, there is no garantee that the number of chunks stored will be exactly the same as the desired replication degree everytime.
+
+There is a possible way to fix this problem, such as resending the protocol until the the exact replication degree is achieved, deleting extra chunks.
+
+Although the aforementioned procedure would present as a solution, we have decided to not implement it, 
+as it would flood the multicast channels with several other messages without significantly reducing the space depletion problem.
+
+
+
 
 
 \subsection{Restore Enhancement}
 
 
 \subsection{Delete Enhancement}
-
-\section{Thread Concurrency}
 
 
 

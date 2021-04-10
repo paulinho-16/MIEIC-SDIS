@@ -4,7 +4,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class TCPHandler implements Runnable {
-
     ServerSocket serverSocket;
 
     TCPHandler(ServerSocket serverSocket){

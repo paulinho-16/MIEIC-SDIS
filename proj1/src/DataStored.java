@@ -144,6 +144,12 @@ public class DataStored implements Serializable {
     }
 
     public void storeNewChunk(Chunk chunk) {
+        if (this.personalBackedUpFiles.containsKey(chunk.getFileID())) {
+            String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
+            System.out.println("This peer is the owner of the file with the chunk " + chunkID + ". Ignoring PUTCHUNK message.");
+            return;
+        }
+
         // Check if Peer already contains the chunk
         String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
         if (this.backupChunks.containsKey(chunkID)) {
@@ -239,8 +245,6 @@ public class DataStored implements Serializable {
     }
 
     public boolean spaceExceeded() {
-        System.out.println("TotalSpace: " + totalSpace);
-        System.out.println("OccupiedSpace: " + occupiedSpace);
         return occupiedSpace > totalSpace;
     }
 

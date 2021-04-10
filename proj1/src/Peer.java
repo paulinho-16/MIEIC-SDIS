@@ -37,7 +37,6 @@ public class Peer {
         Peer.version = version;
         Peer.peerID = peerID;
 
-        // Subscribe the peer to all 3 multicast channels
         // Initialize mc channel
         controlChannel = new MulticastControlChannel(mcAddr, mcPort, peerID);
         // Initialize mdb channel

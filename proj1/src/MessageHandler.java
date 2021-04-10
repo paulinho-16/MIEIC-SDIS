@@ -94,7 +94,6 @@ public class MessageHandler implements Runnable {
         if (Peer.getVersion().equals("1.0"))
             Peer.getData().resetPeersBackingUp(this.messageParser.getFileID());
         // Send a Multicast Message signaling the initiator that the file has been deleted
-        // Schedule ou execute !?
         if (Peer.getVersion().equals("2.0")) {
             Peer.getData().removePeerBackingUp(this.messageParser.getFileID(), Peer.getPeerID());
             System.out.println("MC sending :: DELETED " + " file " + this.messageParser.getFileID() + " Sender " + Peer.getPeerID());
@@ -124,10 +123,11 @@ public class MessageHandler implements Runnable {
         System.out.println("MessageHandler receiving :: REMOVED chunk " + this.messageParser.getChunkNo() + " Sender " + this.messageParser.getSenderID());
         String chunkID = this.messageParser.getFileID() + "-" + this.messageParser.getChunkNo();
         Peer.getData().removePeerBackingUpChunk(chunkID, this.messageParser.getSenderID());
-        /*
+
+        // Verify if the peer has a local copy of the removed chunk
         if(Peer.getData().hasChunkBackup(chunkID)) {
             Chunk chunk = Peer.getData().getChunkBackup(chunkID);
-            int currentRepDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
+            int currentRepDegree = Peer.getData().getChunkReplicationNum(chunkID);
             int desiredRepDegree = chunk.getDesiredReplicationDegree();
             if (currentRepDegree < desiredRepDegree) {
                 byte[] message = MessageParser.makeMessage(chunk.getData(), this.messageParser.getVersion(), "PUTCHUNK", Peer.getPeerID(), this.messageParser.getFileID(), Integer.toString(this.messageParser.getChunkNo()), Integer.toString(desiredRepDegree));
@@ -136,10 +136,9 @@ public class MessageHandler implements Runnable {
                 Peer.executor.schedule(putChunkThread,delay.nextInt(401), TimeUnit.MILLISECONDS);
             }
         }
-        */
-
+        // This method resend the whole protocol using the initiator peer
         // Verify if it's the initiator peer
-        if (Peer.getData().hasFileData(this.messageParser.getFileID())) {
+        /*if (Peer.getData().hasFileData(this.messageParser.getFileID())) {
             FileData filedata = Peer.getData().getFileData(this.messageParser.getFileID());
             int currentRepDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
             int desiredRepDegree = filedata.getReplicationDegree();
@@ -155,7 +154,7 @@ public class MessageHandler implements Runnable {
                     }
                 }), delay.nextInt(401), TimeUnit.MILLISECONDS);
             }
-        }
+        }*/
     }
 
     private void handleHELLO() {

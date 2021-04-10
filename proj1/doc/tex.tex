@@ -1,4 +1,4 @@
-\documentclass[11pt]{article}
+	\documentclass[11pt]{article}
 
 \usepackage[english]{babel}
 \usepackage{indentfirst}
@@ -119,13 +119,16 @@ This report is dividided into two sections
 \section{Concurrency Design}
 
 This section analyzes our implementation of the concurrent execution of instances of the required protocols.
-Both versions of the developed program allow simultaneous executions of these protocols, requested by different initiator peers.
+Both versions of the developed program allow simultaneous executions of these protocols.
 
-When a peer is initialized, the class PeerInitializer starts by storing the input parameters, including the multicast channels IP adresses and ports.
+When a peer starts running, the class PeerInitializer starts by storing the input parameters, including the multicast channels IP adresses and ports.
 Then, it invokes the class Peer, which will be responsible for initializing the three multicast channels:
- - MulticastControlChannel, used for control messages.
- - MulticastDataChannel, used for backing up file chunk data.
- - MulticastDataRecovery, used for restoring file chunk data.
+\begin{itemize}
+ \item MulticastControlChannel, used for control messages.
+ \item MulticastDataChannel, used for backing up file chunk data.
+ \item MulticastDataRecovery, used for restoring file chunk data.
+\end{itemize}
+
 
 // meter print das chamadas do executor e criação
 
@@ -146,8 +149,9 @@ Finally, the majority of the functions responsible for handling each message typ
 This is done using the method schedule of the ScheduledThreadPoolExecutor, which initializes the desired thread only after the given delay.
 We followed the project's enunciate advice of using a random delay uniformly distributed between 0 and 400 milliseconds.
 That way, we lower the probability of the protocol being executed at the exact same time by different peers, avoiding "collisions" and assuring that the many peers that received the same message start and finish the required protocol at different times.
+One example of this is the launching of the thread ChunkThread, while handling a GETCHUNK thread, which will be responsible for sending the data of the chunk requested if the peer that received the message has a local copy of that chunk.
 
-// meter print de algumas funções do Messagehandler que façam isto
+// meter print de algumas funções do Messagehandler que façam isto (GETCHUNK)
 
 A different thread is also launched every time we need to send a message to the multicast channels, which will execute the function sendMessage() of the MulticastChannel class, after a random delay.
 
@@ -160,9 +164,13 @@ After this, the function will start a new thread, responsible for executing that
 // meter prints dos métodos da PeerProtocol
 
 Finally, during some protocols, some new threads are raised with the objective of executing some minor tasks at the same time that the main protocol is ocurring.
-The class PutChunkThread is an example of these calls, since it happens during the backup protocol, and for each 
+The class PutChunkThread is an example of these calls, since it happens during the backup protocol, and for each chunk created during this protocol. Its purpose is to send the PUTCHUNK messages of each chunk created.
+So, as the project enunciate tells, the initiator will send at most 5 PUTCHUNK messages per chunk, in the case of not receiving the desired confirmation messages (replication degree), and doubles the delay between each resend.
+In short, this mechanism is done by this class PutChunkThread, using an independent thread for each chunk to backup.
 
-// acabar
+// meter print do PutChunkThread
+
+// ESCREVER PARTE DA GetChunkThread SÓ DEPOIS DE CORRIGIR O CÓDIGO DA VERSÃO 1.0
 
 \section{Enhancements}
 
@@ -248,9 +256,23 @@ CHUNK message. Such is necessary because all peers must update their storage to 
 
 \subsection{Delete Enhancement}
 
+In the 1.0 version of our project, If a peer that backs up some chunks of the file is not running at the time the initiator peer sends a DELETE message for that file, the space used by these chunks will never be reclaimed.
 
+This enhancement aims to fix that problem, by creating two new messages, DELETED and HELLO.
 
+\[<Version> DELETED <SenderId> <FileId> <CRLF><CRLF>\]
 
-	
+This message works as a confirmation of the DELETE message, being sent after a peer sucessfully removes the files requested by the DELETE message.
+
+This confirmation message allows us to update our deletedFiles CopyOnWriteArraySet<String> that contains fileIDs that have not yet been fully deleted by all other peers.
+
+We have also created the HELLO message,
+\[<Version> HELLO <SenderId> <CRLF><CRLF>\]
+
+which is sent by every Peer via Multicast as soon has it is starts running. Subsequently, all peers receiving this message 
+will check the deletedFiles CopyOnWriteArraySet<String> and initialize the DELETE subprotocol for every file that is yet to be fully deleted
+
+This way, we have achieved a way of managing the removal of chunks that couldnt't fully be deleted if its peer is not be running.
+
 
 \end{document}

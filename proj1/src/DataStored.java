@@ -168,6 +168,11 @@ public class DataStored implements Serializable {
             }
         }
 
+        if (totalSpace == 0) {
+            System.out.println("Peer can't store any chunk: total space is 0.");
+            return;
+        }
+
         // Check if Peer has enough space to store the chunk
         if (occupiedSpace + chunk.getSize() > totalSpace) {
             if (!removeExtraChunks(chunk.getSize())) {
@@ -268,19 +273,34 @@ public class DataStored implements Serializable {
         // Traversing the backed up chunks using an iterator
         Iterator<Map.Entry<String, Chunk>> itr = backupChunks.entrySet().iterator();
 
-        while (spaceExceeded() && itr.hasNext()) {
-            Chunk chunk = itr.next().getValue();
-            int spaceFreed = chunk.getSize();
-            if (chunk.delete()) {
-                backupChunks.remove(chunk.getID());
-                occupiedSpace -= spaceFreed;
-
-                String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
-                sendRemovedMessage(chunk, chunkID);
+        // Special case of RECLAIM 0, where all chunks should be deleted, regardless of the chunk size
+        if(totalSpace == 0) {
+            while (itr.hasNext()) {
+                if (!deleteChunk(itr))
+                    return false;
             }
-            else
-                return false;
         }
+        else {
+            while (spaceExceeded() && itr.hasNext()) {
+                if (!deleteChunk(itr))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean deleteChunk(Iterator<Map.Entry<String, Chunk>> itr) {
+        Chunk chunk = itr.next().getValue();
+        int spaceFreed = chunk.getSize();
+        if (chunk.delete()) {
+            backupChunks.remove(chunk.getID());
+            occupiedSpace -= spaceFreed;
+
+            String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
+            sendRemovedMessage(chunk, chunkID);
+        }
+        else
+            return false;
         return true;
     }
 

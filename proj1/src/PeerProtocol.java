@@ -20,7 +20,7 @@ public class PeerProtocol implements PeerInterface {
         executor.execute(new Thread(() -> {
             try {
                 mdb.backup(filepath, replication_degree);
-            } catch (IOException e) {
+            } catch (IOException | IllegalArgumentException e) {
                 e.printStackTrace();
             }
         }));

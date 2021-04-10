@@ -17,5 +17,7 @@ java TestApp Peer1 DELETE TestApp/hospital.jpg
 java TestApp Peer1 DELETE TestApp/FichaPPIN.pdf
 java TestApp Peer1 RESTORE TestApp/FichaPPIN.pdf
 java TestApp Peer1 RECLAIM TestApp/FichaPPIN.pdf
+java TestApp Peer1 STATE
+
 
 echo "Launched TestApp"

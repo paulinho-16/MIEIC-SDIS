@@ -1,3 +1,7 @@
+package threads;
+
+import peer.Peer;
+
 import java.util.concurrent.TimeUnit;
 
 public class PutChunkThread implements Runnable {

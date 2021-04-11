@@ -1,3 +1,9 @@
+package threads;
+
+import messages.MessageParser;
+import peer.Peer;
+import storage.Chunk;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;

@@ -1,6 +1,10 @@
+package storage;
+
+import peer.Peer;
+
 import java.io.File;
 
-class Chunk implements java.io.Serializable{
+public class Chunk implements java.io.Serializable{
     private final String fileId;
     private final int chunkNumber;
     private final byte[] body;

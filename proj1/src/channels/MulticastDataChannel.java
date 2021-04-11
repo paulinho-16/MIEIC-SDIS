@@ -1,3 +1,10 @@
+package channels;
+
+import messages.MessageParser;
+import peer.Peer;
+import storage.FileData;
+import threads.PutChunkThread;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

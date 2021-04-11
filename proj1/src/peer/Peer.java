@@ -1,3 +1,9 @@
+package peer;
+
+import channels.*;
+import messages.MessageParser;
+import storage.*;
+
 import java.io.*;
 import java.net.*;
 import java.rmi.registry.LocateRegistry;

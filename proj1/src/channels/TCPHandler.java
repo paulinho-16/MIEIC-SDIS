@@ -1,3 +1,10 @@
+package channels;
+
+import messages.MessageHandler;
+import messages.MessageParser;
+import peer.Peer;
+import storage.Chunk;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -6,7 +13,7 @@ import java.net.Socket;
 public class TCPHandler implements Runnable {
     ServerSocket serverSocket;
 
-    TCPHandler(ServerSocket serverSocket){
+    public TCPHandler(ServerSocket serverSocket){
         this.serverSocket = serverSocket;
     }
 

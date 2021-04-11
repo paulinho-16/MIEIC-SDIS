@@ -1,3 +1,10 @@
+package channels;
+
+import messages.MessageParser;
+import peer.Peer;
+import storage.Chunk;
+import storage.FileData;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.util.Random;
@@ -64,6 +71,12 @@ public class MulticastControlChannel extends MulticastChannel {
         String path = Peer.getPersonalFilesPath() + "/" + filename;
 
         File file = new File(path);
+
+        if (!file.exists()) {
+            System.out.println("File " + filename + " doesn't belong to this peer.");
+            return;
+        }
+
         String fileID = this.createId(this.peerID, path, file.lastModified());
 
         if (Peer.getVersion().equals("1.0")) {
@@ -87,8 +100,9 @@ public class MulticastControlChannel extends MulticastChannel {
     public void reclaim(int disk_space) {
         Peer.getData().setTotalSpace(disk_space * 1000);
         // While there is still not enough space, we need to delete more chunks
-        if (Peer.getData().allocateSpace())
+        if (Peer.getData().allocateSpace()) {
             System.out.println("Reclaim successful: Peer " + Peer.getPeerID() + " now has " + (Peer.getData().getTotalSpace() - Peer.getData().getOccupiedSpace()) + " free space");
+        }
         else
             System.out.println("Error reclaiming space on peer " + Peer.getPeerID());
     }

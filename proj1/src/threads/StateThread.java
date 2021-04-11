@@ -1,3 +1,7 @@
+package threads;
+
+import peer.Peer;
+
 public class StateThread implements Runnable {
     private volatile String string;
 

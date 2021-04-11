@@ -1,3 +1,8 @@
+package storage;
+
+import messages.MessageParser;
+import peer.Peer;
+
 import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -238,7 +243,7 @@ public class DataStored implements Serializable {
        return true;
     }
 
-    boolean receivedAllChunks(String fileID) {
+    public boolean receivedAllChunks(String fileID) {
         FileData fileData = personalBackedUpFiles.get(fileID);
         CopyOnWriteArraySet<String> chunks = fileData.getBackupChunks();
         for (String chunkID : chunks) {
@@ -369,14 +374,17 @@ public class DataStored implements Serializable {
         }
     }
 
-    public void removePeerBackingUp(String fileID, String peerID) {
+    public boolean removePeerBackingUp(String fileID, String peerID) {
+        boolean deleted = false;
         for(String chunkID : chunksRepDegrees.keySet()) {
             String chunkFileID = chunkID.split("-")[0];
             if (chunkFileID.equals(fileID)) {
                 CopyOnWriteArraySet<String> peersBackingUp = chunksRepDegrees.get(chunkID);
                 peersBackingUp.remove(peerID);
+                deleted = true;
             }
         }
+        return deleted;
     }
 
     public void updateDeletedFiles() {

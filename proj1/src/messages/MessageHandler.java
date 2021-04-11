@@ -1,4 +1,12 @@
-import java.io.IOException;
+package messages;
+
+import peer.Peer;
+import storage.Chunk;
+import storage.FileData;
+import threads.ChunkThread;
+import threads.GetChunkThread;
+import threads.PutChunkThread;
+
 import java.net.InetAddress;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -85,7 +93,7 @@ public class MessageHandler implements Runnable {
         }
     }
 
-    static void doneReceivedAllChunks(MessageParser messageParser) {
+    public static void doneReceivedAllChunks(MessageParser messageParser) {
         if (Peer.getData().receivedAllChunks(messageParser.getFileID())) {
             FileData filedata = Peer.getData().getFileData(messageParser.getFileID());
             int chunkNumbers = filedata.getChunkNumbers();
@@ -103,12 +111,14 @@ public class MessageHandler implements Runnable {
             System.out.println("Error on operation DELETE");
         }
 
-        //
         if (Peer.getVersion().equals("1.0"))
             Peer.getData().resetPeersBackingUp(this.messageParser.getFileID());
         // Send a Multicast Message signaling the initiator that the file has been deleted
         if (Peer.getVersion().equals("2.0")) {
-            Peer.getData().removePeerBackingUp(this.messageParser.getFileID(), Peer.getPeerID());
+            if (!Peer.getData().removePeerBackingUp(this.messageParser.getFileID(), Peer.getPeerID())) {
+                System.out.println("This peer has no chunks of the file " + this.messageParser.getFileID());
+                return;
+            }
             System.out.println("MC sending :: DELETED " + " file " + this.messageParser.getFileID() + " Sender " + Peer.getPeerID());
             byte[] message = MessageParser.makeHeader(Peer.getVersion(), "DELETED", Peer.getPeerID(), this.messageParser.getFileID());
             Random delay = new Random();

@@ -1,3 +1,9 @@
+package threads;
+
+import peer.Peer;
+import storage.Chunk;
+import storage.DataStored;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 

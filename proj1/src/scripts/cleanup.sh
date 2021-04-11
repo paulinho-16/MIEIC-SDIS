@@ -12,8 +12,10 @@
 # Check number input arguments
 argc=$#
 
-
-if ((argc == 1 ))
+if ((argc == 0 ))
+then
+    rm -r peers
+elif ((argc == 1 ))
 then
 	peer_id=$1
     rm  peers/$peer_id/chunks/*

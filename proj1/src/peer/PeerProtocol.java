@@ -1,3 +1,10 @@
+package peer;
+
+import channels.MulticastControlChannel;
+import channels.MulticastDataChannel;
+import channels.MulticastDataRecovery;
+import threads.StateThread;
+
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;

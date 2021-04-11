@@ -1,3 +1,8 @@
+package channels;
+
+import messages.MessageHandler;
+import peer.Peer;
+
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -18,7 +23,7 @@ public class MulticastChannel implements Runnable {
         this.multicastSocket.joinGroup(this.addr);
     }
 
-    void sendMessage(byte[] message) {
+    public void sendMessage(byte[] message) {
         try {
             DatagramPacket packetSend = new DatagramPacket(message, message.length, this.addr, this.port);
             this.multicastSocket.send(packetSend);

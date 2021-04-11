@@ -25,5 +25,8 @@ java TestApp Peer1 STATE
 ..\scripts\test.sh Peer1 BACKUP FichaPPIN.pdf 1
 ..\scripts\test.sh Peer1 RESTORE FichaPPIN.pdf
 
+..\scripts\test.sh Peer1 DELETE FichaPPIN.pdf
+..\scripts\test.sh Peer1 RECLAIM FichaPPIN.pdf
+
 
 echo "Launched TestApp"

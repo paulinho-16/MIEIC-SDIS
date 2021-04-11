@@ -80,6 +80,6 @@ esac
 
 # echo "java test.TestApp ${pap} ${oper} ${opernd_1} ${rep_deg}"
 
-java TestApp ${pap} ${oper} ${opernd_1} ${rep_deg}
+java client.TestApp ${pap} ${oper} ${opernd_1} ${rep_deg}
 
 #read  -n 1 -p "Input Selection:" mainmenuinput

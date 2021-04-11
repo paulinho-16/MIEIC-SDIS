@@ -229,7 +229,6 @@ Example of initialization of one peer:
 ..\scripts\peer.sh 2.0 1 Peer1 225.0.0.1 8000 225.0.0.1 8001 225.0.0.1 8002
 \end{lstlisting}
 
-\bigskip
 \pagebreak
 \subsection{Backup Enhancement}
 Since the 1.0 version of the Backup protocol only verifies the replication degree before sending a PUTCHUNK message via UDP Multicast, all the peers that receive that message will store the chunk.
@@ -266,8 +265,7 @@ as it would flood the multicast channels with several other messages without sig
 
 \subsection{Restore Enhancement}
 
-This enhancement was designed to avoid sending all the file's chunks through a UDP Multicast channel. As a matter of fact, the 1.0 version is incapable of restoring large files,
-given that the UDP protocol is unreliable and there is too much data being continuously sent through the multicast channel. Many messages were often missing, and most of them would be ignored by every peer except the initiator,
+This enhancement was designed to avoid sending all the file's chunks through a UDP Multicast channel. As a matter of fact, the 1.0 version is incapable of restoring large files, given that the UDP protocol is unreliable and there is too much data being continuously sent through the multicast channel. Many messages were often missing, and most of them would be ignored by every peer except the initiator,
 which is the only one that needs the chunk data to restore the file.
 
 In order to solve this problem, we came up with a solution by using the TCP protocol to exchange the body of the message between the peer that contains the chunk and the initiator peer requesting the protocol.
@@ -275,7 +273,6 @@ In order to solve this problem, we came up with a solution by using the TCP prot
 First, we initialized the TCPHandler thread, which is blocked in a while loop, launching a ClientHandler thread whenever there is a Client Socket starting the TCP connection.
 
 \begin{lstlisting}[language=java]
-@Override
 public void run() {
 	while(true) {
 		try {

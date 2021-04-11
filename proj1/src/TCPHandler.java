@@ -50,16 +50,9 @@ public class TCPHandler implements Runnable {
                     Peer.getData().addReceivedChunk(new Chunk(messageParser.getVersion(), messageParser.getFileID(), messageParser.getChunkNo(), replicationDegree, messageParser.getBody()));
                 }
 
-                // Checking if all chunks have already been received
-                if (Peer.getData().receivedAllChunks(messageParser.getFileID())) {
-                    FileData filedata = Peer.getData().getFileData(messageParser.getFileID());
-                    int chunkNumbers = filedata.getChunkNumbers();
+                // Checking if all chunks have already been received and launch GetChunkThread
+                MessageHandler.doneReceivedAllChunks(messageParser);
 
-                    // Launching a Thread that restores the file
-                    GetChunkThread getChunkThread = new GetChunkThread(filedata.getFilename(), messageParser.getFileID(), chunkNumbers);
-                    Peer.executor.execute(getChunkThread);
-                }
-    
                 // Ending TCP connection
                 in.close();
                 clientSocket.close();

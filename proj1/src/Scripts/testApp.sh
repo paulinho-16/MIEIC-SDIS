@@ -19,5 +19,11 @@ java TestApp Peer1 RESTORE TestApp/FichaPPIN.pdf
 java TestApp Peer1 RECLAIM TestApp/FichaPPIN.pdf
 java TestApp Peer1 STATE
 
+..\scripts\test.sh Peer3 BACKUP Cartografia.pdf 1
+..\scripts\test.sh Peer3 RESTORE Cartografia.pdf
+
+..\scripts\test.sh Peer1 BACKUP FichaPPIN.pdf 1
+..\scripts\test.sh Peer1 RESTORE FichaPPIN.pdf
+
 
 echo "Launched TestApp"

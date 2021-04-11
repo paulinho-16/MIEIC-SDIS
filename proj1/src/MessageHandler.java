@@ -75,12 +75,25 @@ public class MessageHandler implements Runnable {
                 Peer.getData().removeWaitingChunk(chunkID);
                 int replicationDegree = Peer.getData().getFileReplicationDegree(this.messageParser.getFileID());
                 Peer.getData().addReceivedChunk(new Chunk(this.messageParser.getVersion(), this.messageParser.getFileID(), this.messageParser.getChunkNo(), replicationDegree, this.messageParser.getBody()));
+
+                // Checking if all chunks have already been received and launch GetChunkThread
+                doneReceivedAllChunks(messageParser);
             }
         }
         else {
             Peer.getData().addChunkMessagesSent(chunkID);
         }
+    }
 
+    static void doneReceivedAllChunks(MessageParser messageParser) {
+        if (Peer.getData().receivedAllChunks(messageParser.getFileID())) {
+            FileData filedata = Peer.getData().getFileData(messageParser.getFileID());
+            int chunkNumbers = filedata.getChunkNumbers();
+
+            // Launching a Thread that restores the file
+            GetChunkThread getChunkThread = new GetChunkThread(filedata.getFilename(), messageParser.getFileID(), chunkNumbers);
+            Peer.executor.execute(getChunkThread);
+        }
     }
 
     private void handleDELETE() {

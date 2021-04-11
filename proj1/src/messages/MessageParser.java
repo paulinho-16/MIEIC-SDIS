@@ -2,6 +2,7 @@ package messages;
 
 import java.util.Arrays;
 
+// Class for Parsing the messages according to the project guide
 public class MessageParser {
     // Macros
     public static final byte CR = 0xD, LF = 0xA;  // ASCII codes for <CRLF>
@@ -43,8 +44,17 @@ public class MessageParser {
         return body;
     }
 
+    public int getReplicationDegree() {
+        return replicationDeg;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
     // Message: <Version> <MessageType> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
-    // <Body> only exists in PUTCHUNK messages
+    // <Body> only exists in PUTCHUNK messages, and in the CHUNK messages if in version 1.0
+    // Parses the message received
     public boolean parse() {
         int i;  // Breakpoint index for header
         for (i = 0; i < this.message.length; i++) {
@@ -79,6 +89,7 @@ public class MessageParser {
     }
 
     // https://stackoverflow.com/questions/5368704/appending-a-byte-to-the-end-of-another-byte
+    // Create a message with a body (used on PUTCHUNK, or CHUNK in version 1.0)
     public static byte[] makeMessage(byte[] body, String... headerString) {
         byte[] header = (String.join(" ", headerString) + CRLF + CRLF).getBytes();
         byte[] message = new byte[header.length + body.length];
@@ -88,20 +99,14 @@ public class MessageParser {
         return message;
     }
 
+    // Create a message with header only, no body
     public static byte[] makeHeader(String... headerString) {
         return (String.join(" ", headerString) + CRLF + CRLF).getBytes();
     }
 
+    // Create the 2.0 version GETCHUNK message that contains 2 lines separated by CRLF
     public static byte[] makeGetChunkMessage(String port, String... headerString){
         return (String.join(" ", headerString) + " " + CRLF +
                 port + " " + CRLF + CRLF).getBytes();
-    }
-
-    public int getReplicationDegree() {
-        return replicationDeg;
-    }
-
-    public int getPort() {
-        return port;
     }
 }

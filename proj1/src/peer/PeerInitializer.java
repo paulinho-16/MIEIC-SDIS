@@ -3,6 +3,7 @@ package peer;
 import java.io.*;
 import java.net.*;
 
+// Class that stores the arguments of the command line that initializes a peer
 public class PeerInitializer {
     public static void main(String[] args) throws IOException {
         if(args.length != 9) {

@@ -4,7 +4,8 @@ import peer.Peer;
 
 import java.io.File;
 
-public class Chunk implements java.io.Serializable{
+// Class that stores info about a given chunk
+public class Chunk implements java.io.Serializable {
     private final String fileId;
     private final int chunkNumber;
     private final byte[] body;
@@ -47,6 +48,7 @@ public class Chunk implements java.io.Serializable{
         return desiredReplicationDegree;
     }
 
+    // Delete the file from the directory
     public boolean delete() {
         File file = new File(Peer.getChunksPath() + "/" + fileId + "-" + chunkNumber);
         return file.delete();

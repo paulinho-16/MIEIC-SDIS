@@ -17,10 +17,12 @@ public class TCPHandler implements Runnable {
         this.serverSocket = serverSocket;
     }
 
+    // Wait for the server socket to accept new sockets
     @Override
     public void run() {
         while(true) {
             try {
+                // Raise a ClientHanlder when the TCP connection is established
                 new ClientHandler(serverSocket.accept()).start();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -28,6 +30,7 @@ public class TCPHandler implements Runnable {
         }
     }
 
+    // Deal with the message received from TCP, updating the received chunks
     private static class ClientHandler extends Thread {
         private final Socket clientSocket;
 
@@ -46,10 +49,11 @@ public class TCPHandler implements Runnable {
 
                 // Checking Parsing
                 if (!messageParser.parse()) {
-                    System.out.println("Error parsing message");
+                    System.err.println("Error parsing message");
                     return;
                 }
-    
+
+                // Check if this peer was waiting for the chunk received and update the received chunks
                 String chunkID = messageParser.getFileID() + "-" + messageParser.getChunkNo();
                 if(Peer.getData().hasWaitingChunk(chunkID)) {
                     Peer.getData().removeWaitingChunk(chunkID);
@@ -57,7 +61,7 @@ public class TCPHandler implements Runnable {
                     Peer.getData().addReceivedChunk(new Chunk(messageParser.getVersion(), messageParser.getFileID(), messageParser.getChunkNo(), replicationDegree, messageParser.getBody()));
                 }
 
-                // Checking if all chunks have already been received and launch GetChunkThread
+                // Checking if all chunks have already been received and launch GetChunkThread to restore the file
                 MessageHandler.doneReceivedAllChunks(messageParser);
 
                 // Ending TCP connection

@@ -30,13 +30,14 @@ public class Peer {
     private static PeerProtocol peerProtocol;
     // Peer stored data
     private static DataStored data = new DataStored();
-    // Initializing thread pool executor as a scheduled
+    // Initializing thread pool executor as a scheduler
     public static ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(250);
 
     // Macros
     public static final int CHUNK_SIZE = 64000; // Chunk maximum size is 64KB
     public static final String DIRECTORY = "peers/";
 
+    // TCP port
     public static int port;
 
     public Peer(String version, String peerID, String accessPoint, InetAddress mcAddr, int mcPort, InetAddress mdbAddr, int mdbPort, InetAddress mdrAddr, int mdrPort) throws IOException {
@@ -50,10 +51,12 @@ public class Peer {
         // Initialize mdr channel
         restoreChannel = new MulticastDataRecovery(mdbAddr, mdbPort, peerID);
 
+        // Start the while loop in the channels, allowing messages to be read
         executor.execute(controlChannel);
         executor.execute(backupChannel);
         executor.execute(restoreChannel);
 
+        // Enable TCP connection for version 2.0
         if(version.equals("2.0")) {
             ServerSocket serverSocket = new ServerSocket(0);
             Peer.port = serverSocket.getLocalPort();
@@ -70,13 +73,12 @@ public class Peer {
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(accessPoint, stub);
 
-            System.err.println("Successfully initialized Remote Interface");
+            System.out.println("Successfully initialized Remote Interface");
 
         } catch (Exception e) {
-            System.err.println("Remote Interface Exception: " + e.toString());
+            System.err.println("Remote Interface Exception: " + e);
             e.printStackTrace();
         }
-        String chunksPath, personalFilesPath, restoredFilesPath;
 
         // Creating directories for the peer data
         Peer.chunksPath = DIRECTORY + peerID + "/chunks";
@@ -94,8 +96,8 @@ public class Peer {
         // Ensures data is serialized before the application shuts down
         Runtime.getRuntime().addShutdownHook(new Thread(Peer::saveChunks));
 
+        // DELETE enhancement sends an HELLO message on peer startup
         if (version.equals("2.0")) {
-
             // Send HELLO Message
             System.out.println("MC sending :: HELLO Sender " + Peer.getPeerID());
             byte[] message = MessageParser.makeHeader(Peer.getVersion(), "HELLO", Peer.peerID);
@@ -148,6 +150,7 @@ public class Peer {
         fileData.mkdirs();
     }
 
+    // Chunk serialization, writing in the data.ser file
     public static void saveChunks() {
         try {
             DataStored.createFile(serializationPath);
@@ -160,12 +163,12 @@ public class Peer {
             System.out.println("Serialized data is saved in " + serializationPath);
         } catch (IOException i) {
             i.printStackTrace();
-            System.out.println("Unable to save state in path:" + serializationPath);
+            System.err.println("Unable to save state in path:" + serializationPath);
         }
-        System.out.println("Serialized data");
     }
 
-    public static void loadChunks(){
+    // Chunk serialization, loading the data from a data.ser file
+    public static void loadChunks() {
         try {
             File file = new File(serializationPath);
             if(!file.exists())
@@ -181,7 +184,7 @@ public class Peer {
             i.printStackTrace();
             return;
         } catch (ClassNotFoundException c) {
-            System.out.println("Class not found");
+            System.err.println("Class not found");
             c.printStackTrace();
             return;
         }

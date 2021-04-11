@@ -3,12 +3,13 @@ package storage;
 import java.io.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+// Class that stores info about a given file
 public class FileData implements Serializable {
     private final String filename;
     private final String fileID;
     private final int replicationDegree;
 
-    // CopyOnWriteArraySet<chunkID>
+    // CopyOnWriteArraySet<chunkID> -> Chunks that compose the file
     private final CopyOnWriteArraySet<String> backupChunks = new CopyOnWriteArraySet<>();
 
     public FileData(String filename, String fileID, int replicationDegree) {

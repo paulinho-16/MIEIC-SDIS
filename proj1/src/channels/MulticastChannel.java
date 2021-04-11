@@ -23,16 +23,18 @@ public class MulticastChannel implements Runnable {
         this.multicastSocket.joinGroup(this.addr);
     }
 
+    // Send a message to the multicast channel
     public void sendMessage(byte[] message) {
         try {
             DatagramPacket packetSend = new DatagramPacket(message, message.length, this.addr, this.port);
             this.multicastSocket.send(packetSend);
         } catch(Exception e) {
             e.printStackTrace();
-            System.out.println("Error sending message to Multicast Data Channel (MDB)");
+            System.err.println("Error sending message to Multicast Data Channel (MDB)");
         }
     }
 
+    // Infinite loop to receive new messages and sending them to MessageHandler
     @Override
     public void run() {
         byte[] msgReceived = new byte[65507]; // maximum data size for UDP packet -> https://en.wikipedia.org/wiki/User_Datagram_Protocol
@@ -46,11 +48,12 @@ public class MulticastChannel implements Runnable {
                 Peer.executor.execute(new MessageHandler(realData, this.peerID, requestPacket.getAddress()));
             }
         } catch(Exception e) {
+            System.err.println("Error receiving message from Multicast Data Channel (MDB)");
             e.printStackTrace();
-            System.out.println("Error receiving message from Multicast Data Channel (MDB)");
         }
     }
 
+    // Create the file ID based on its owner, name and last modified date
     protected String createId(String peerID, String filename, long dateModified) {
         return sha256(peerID + "//" + filename + "//" + dateModified);
     }

@@ -16,8 +16,8 @@ public class MulticastDataChannel extends MulticastChannel {
         super(addr, port, peerID);
     }
 
+    // Backup protocol
     public void backup(String filename, int replicationDegree) throws IOException {
-
         if(filename == null) {
             throw new IllegalArgumentException("Invalid filename");
         }
@@ -26,17 +26,15 @@ public class MulticastDataChannel extends MulticastChannel {
             throw new IllegalArgumentException("Invalid replicationDegree: value must be greater or equal to 1");
         }
 
-        // Creating new file if it doesn't exist
         String path = Peer.getPersonalFilesPath() + "/" + filename;
-
         File file = new File(path);
 
+        // Check if the file to backup belongs to the current peer
         if (!file.exists()) {
             throw new IllegalArgumentException("File " + filename + " doesn't belong to this peer.");
         }
 
         FileInputStream in = new FileInputStream(file);
-
         int chunkCount = 0;
         byte[] chunkData;
         int availableBytes;
@@ -60,12 +58,15 @@ public class MulticastDataChannel extends MulticastChannel {
             FileData filedata = Peer.getData().getFileData(fileID);
             String chunkID = fileID + "-" + chunkCount;
 
+            // Add the chunk to the filedata storage
             filedata.addChunk(chunkID);
 
+            // Launch a thread responsible for controlling PUTCHUNK message resends, for each chunk
             Peer.executor.execute(new PutChunkThread(message, fileID, chunkCount, replicationDegree));
 
             chunkCount++;
 
+            // Special case where the file size is a multiple of 64 Kb: an empty chunk must be backed up
             if(availableBytes == Peer.CHUNK_SIZE) {
                 byte[] messageChunkData1 =  MessageParser.makeMessage(new byte[0], Peer.getVersion(), "PUTCHUNK", this.peerID , fileID, Integer.toString(chunkCount), Integer.toString(replicationDegree));
                 chunkID = fileID + "-" + chunkCount;

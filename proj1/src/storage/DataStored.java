@@ -10,19 +10,27 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class DataStored implements Serializable {
+    // Storage Space
     private int totalSpace;
     private int occupiedSpace;
 
+    //ConcurrentHashMap<fileID,fileData> -> Files that other peers have backed up
     private final ConcurrentHashMap<String, FileData> personalBackedUpFiles = new ConcurrentHashMap<>();
+    //ConcurrentHashMap<chunkID,Chunk> -> Chunks the Peer contains as a backup
     private final ConcurrentHashMap<String, Chunk> backupChunks = new ConcurrentHashMap<>();
+    //ConcurrentHashMap<chunkID,CopyOnWriteArraySet<PeerID>> -> Register of the list of peers backing up a given chunk
     private final ConcurrentHashMap<String, CopyOnWriteArraySet<String>> chunksRepDegrees = new ConcurrentHashMap<>();
+    //CopyOnWriteArraySet<chunkID> -> Chunks not yet received but needed to restore a given file
     private final CopyOnWriteArraySet<String> waitingChunks = new CopyOnWriteArraySet<>();
+    //ConcurrentHashMap<ChunkID, Chunk> -> Chunks already received and needed to restore a given file
     private final ConcurrentHashMap<String, Chunk> receivedChunks = new ConcurrentHashMap<>();
+    //CopyOnWriteArraySet<ChunkID> -> Chunks that have already been sent, to avoid resending duplicate messages
     private final CopyOnWriteArraySet<String> chunkMessagesSent = new CopyOnWriteArraySet<>();
+    //CopyOnWriteArraySet<FileID> -> Files whose deletion has been requested but not all DELETED responses have been received
     private final CopyOnWriteArraySet<String> deletedFiles = new CopyOnWriteArraySet<>();
 
     public DataStored() {
-        this.totalSpace = 500000000; // Default Value: 500MB
+        this.totalSpace = 500000000; // Default Value: 500 Mb
         this.occupiedSpace = 0;
     }
 
@@ -60,12 +68,14 @@ public class DataStored implements Serializable {
         return occupiedSpace;
     }
 
+    // Get the current replication degree of a given chunk
     public int getChunkReplicationNum(String chunkID) {
         if (chunksRepDegrees.containsKey(chunkID))
             return chunksRepDegrees.get(chunkID).size();
         return 0;
     }
 
+    // Get the current replication degree of a given file
     public int getFileReplicationDegree(String fileID) {
         FileData fileData = personalBackedUpFiles.get(fileID);
         CopyOnWriteArraySet<String> chunks = fileData.getBackupChunks();
@@ -124,6 +134,7 @@ public class DataStored implements Serializable {
         }
     }
 
+    // If there is no space to store a new chunk, deletes a chunk whose replication degree is above the desired
     public boolean removeExtraChunks(int chunkSize) {
         for (String chunkID : backupChunks.keySet()) {
             Chunk storedChunk = backupChunks.get(chunkID);
@@ -149,13 +160,14 @@ public class DataStored implements Serializable {
     }
 
     public void storeNewChunk(Chunk chunk) {
+        // Check if the chunk is from a personal file of the current peer, and don't back it up
         if (this.personalBackedUpFiles.containsKey(chunk.getFileID())) {
             String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
             System.out.println("This peer is the owner of the file with the chunk " + chunkID + ". Ignoring PUTCHUNK message.");
             return;
         }
 
-        // Check if Peer already contains the chunk
+        // Check if Peer already contains the chunk, resending the STORED message as confirmation
         String chunkID = chunk.getFileID() + "-" + chunk.getChunkNumber();
         if (this.backupChunks.containsKey(chunkID)) {
             System.out.println("Chunk has already been stored");
@@ -163,7 +175,7 @@ public class DataStored implements Serializable {
             return;
         }
 
-        // Backup enhancement
+        // Backup enhancement, stopping the storage if the replication degree is already fulfilled
         if(Peer.getVersion().equals("2.0")) {
             int chunkRepDeg = getChunkReplicationNum(chunkID);
             int desiredRepDeg = chunk.getDesiredReplicationDegree();
@@ -173,12 +185,13 @@ public class DataStored implements Serializable {
             }
         }
 
+        // Prevent a Peer from storing empty chunks if its totalSpace is 0
         if (totalSpace == 0) {
             System.out.println("Peer can't store any chunk: total space is 0.");
             return;
         }
 
-        // Check if Peer has enough space to store the chunk
+        // Check if Peer has enough space to store the chunk, deleting chunks with replication degree above the desired until it has enough space
         if (occupiedSpace + chunk.getSize() > totalSpace) {
             if (!removeExtraChunks(chunk.getSize())) {
                 System.out.println("Peer " + Peer.getPeerID() + " doesn't have enough space for chunk " + chunk.getChunkNumber());
@@ -186,9 +199,11 @@ public class DataStored implements Serializable {
             }
         }
 
+        // Adds the chunk to the storage and updates storage size
         this.backupChunks.put(chunkID, chunk);
         this.occupiedSpace += chunk.getSize();
 
+        // Sends a STORED message through the Multicast Control Channel
         Peer.getMCChannel().sendStoreMsg(chunk);
 
         // Writing the Chunk to a file
@@ -200,10 +215,11 @@ public class DataStored implements Serializable {
             fout.write(chunk.getData());
             fout.close();
         } catch(IOException e) {
-            System.out.println("Error on writing chunk to a file");
+            System.err.println("Error on writing chunk to a file");
         }
     }
 
+    // Update chunk current replication degree according to the sender of the STORED message
     public void updateChunkReplicationsNum(String fileID, int chunkNumber, String senderID) {
         String chunkID = fileID + "-" + chunkNumber;
         CopyOnWriteArraySet<String> peersStoring = chunksRepDegrees.get(chunkID);
@@ -221,20 +237,20 @@ public class DataStored implements Serializable {
         personalBackedUpFiles.remove(fileID);
     }
 
+    // Delete all chunks associated to a File
     public boolean deleteFileChunks(String fileID) {
-        // Delete all chunks of the file with fileID
         for(String key : backupChunks.keySet()) {
             Chunk chunk = backupChunks.get(key);
             if(chunk.getFileID().equals(fileID)) {
                 // Delete the file chunk
                 if (!chunk.delete()) {
-                    System.out.println("Error deleting chunk file");
+                    System.err.println("Error deleting chunk file");
                     return false;
                 }
                 occupiedSpace -= chunk.getSize();
                 // Delete the chunk from the storage
-                if (backupChunks.remove(key) == null){
-                    System.out.println("Error deleting chunk from backupChunks");
+                if (backupChunks.remove(key) == null) {
+                    System.err.println("Error deleting chunk from backupChunks");
                     return false;
                 }
             }
@@ -243,6 +259,7 @@ public class DataStored implements Serializable {
        return true;
     }
 
+    // Check if the peer received all the chunks from the file requested to restore
     public boolean receivedAllChunks(String fileID) {
         FileData fileData = personalBackedUpFiles.get(fileID);
         CopyOnWriteArraySet<String> chunks = fileData.getBackupChunks();
@@ -259,7 +276,7 @@ public class DataStored implements Serializable {
     }
 
     public static File createFile(String path) {
-        try{
+        try {
             File myObj = new File(path);
             if (myObj.createNewFile()) {
                 System.out.println("File created: " + path);
@@ -267,13 +284,14 @@ public class DataStored implements Serializable {
             } else {
                 System.out.println("File already exists.");
             }
-        }catch(Exception e){
-            System.out.println("Error on creating file: " + path);
+        } catch(Exception e) {
+            System.err.println("Error on creating file: " + path);
             e.printStackTrace();
         }
         return null;
     }
 
+    // Starts removing random chunks until the occupied space doesn't surpass the total space
     public boolean allocateSpace() {
         // Traversing the backed up chunks using an iterator
         Iterator<Map.Entry<String, Chunk>> itr = backupChunks.entrySet().iterator();
@@ -294,6 +312,7 @@ public class DataStored implements Serializable {
         return true;
     }
 
+    // Delete a given chunk from the peer storage
     private boolean deleteChunk(Iterator<Map.Entry<String, Chunk>> itr) {
         Chunk chunk = itr.next().getValue();
         int spaceFreed = chunk.getSize();
@@ -309,6 +328,7 @@ public class DataStored implements Serializable {
         return true;
     }
 
+    // Send a REMOVED message to the MC Channel
     private void sendRemovedMessage(Chunk chunk, String chunkID) {
         Peer.getData().removePeerBackingUpChunk(chunkID, Peer.getPeerID());
 
@@ -317,8 +337,9 @@ public class DataStored implements Serializable {
         Peer.executor.execute(new Thread(() -> Peer.getMCChannel().sendMessage(message)));
     }
 
+    // Returns all the peer information as a formatted string
     public String displayState() {
-        // For each file whose backup it has initiated:
+        // For each file whose backup has initiated:
         StringBuilder builder = new StringBuilder();
         builder.append("\nPersonal backed up files:");
         if (personalBackedUpFiles.isEmpty()) {
@@ -365,6 +386,7 @@ public class DataStored implements Serializable {
         return builder.toString();
     }
 
+    // Removes all peers from the list of peers backing up a given file
     public void resetPeersBackingUp(String fileID) {
         for(String chunkID : chunksRepDegrees.keySet()) {
             String chunkFileID = chunkID.split("-")[0];
@@ -374,6 +396,7 @@ public class DataStored implements Serializable {
         }
     }
 
+    // Remove a single peer from the list of peers backing up a given file
     public boolean removePeerBackingUp(String fileID, String peerID) {
         boolean deleted = false;
         for(String chunkID : chunksRepDegrees.keySet()) {
@@ -387,6 +410,7 @@ public class DataStored implements Serializable {
         return deleted;
     }
 
+    // Called on the HELLO message, sends the DELETE messages of the files still waiting to be fully deleted
     public void updateDeletedFiles() {
         for(String fileID : deletedFiles) {
             if(hasFileData(fileID)) {

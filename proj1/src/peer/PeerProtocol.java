@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class PeerProtocol implements PeerInterface {
+    // Multicast Channels
     private final MulticastControlChannel mc;
     private final MulticastDataChannel mdb;
     private final MulticastDataRecovery mdr;
@@ -21,6 +22,8 @@ public class PeerProtocol implements PeerInterface {
         this.mdr = mdr;
     }
 
+
+    // Call Backup protocol
     @Override
     public void backup(String filepath, int replication_degree) {
         System.out.println("Request: Backup");
@@ -28,29 +31,34 @@ public class PeerProtocol implements PeerInterface {
             try {
                 mdb.backup(filepath, replication_degree);
             } catch (IOException | IllegalArgumentException e) {
+                System.err.println("Error on Backup Protocol");
                 e.printStackTrace();
             }
         }));
     }
 
+    // Call Restore protocol
     @Override
     public void restore(String filepath) {
         System.out.println("Request: Restore");
         executor.execute(new Thread(() -> mc.restore(filepath)));
     }
 
+    // Call Delete protocol
     @Override
     public void delete(String filepath) {
         System.out.println("Request: Delete");
         executor.execute(new Thread(() -> mc.delete(filepath)));
     }
 
+    // Call Reclaim protocol
     @Override
     public void reclaim(int disk_space) {
         System.out.println("Request: Reclaim");
         executor.execute(new Thread(() -> mc.reclaim(disk_space)));
     }
 
+    // Call State protocol
     @Override
     public String state() {
         System.out.println("Request: State");
@@ -64,6 +72,7 @@ public class PeerProtocol implements PeerInterface {
             printable = stateThread.getString();
             return printable;
         } catch (InterruptedException e) {
+            System.err.println("Error on State Protocol");
             e.printStackTrace();
         }
         return null;

@@ -16,6 +16,7 @@ public class MulticastControlChannel extends MulticastChannel {
         super(addr,port,peerID);
     }
 
+    // Send the STORED message to the MC Channel
     public void sendStoreMsg(Chunk chunk) {
         System.out.println("MC sending :: STORED chunk " + chunk.getChunkNumber() + " Sender " + this.peerID);
 
@@ -27,29 +28,35 @@ public class MulticastControlChannel extends MulticastChannel {
         Peer.getData().updateChunkReplicationsNum(chunk.getFileID(), chunk.getChunkNumber(), this.peerID);
     }
 
+    // Restore protocol
     public void restore(String filename) {
         if(filename == null) {
             throw new IllegalArgumentException("Invalid filename");
         }
+
         String path = Peer.getPersonalFilesPath() + "/" + filename;
         File file = new File(path);
         String fileID = createId(peerID, path, file.lastModified());
+
+        // Check if the file to restore belongs to the current peer
         if (!Peer.getData().hasFileData(fileID)) {
-            System.out.println("Error restoring file " + path + ": File does not belong to Peer " + peerID);
+            System.err.println("Error restoring file " + path + ": File does not belong to Peer " + peerID);
             return;
         }
 
         FileData fileData = Peer.getData().getFileData(fileID);
-
         int totalChunks = fileData.getChunkNumbers();
 
+        // Request the file chunks, sending GETCHUNK messages for each of them
         for (int chunkNumber = 0;  chunkNumber < totalChunks; chunkNumber++) {
             byte[] message;
             String chunkID = fileID + "-" + chunkNumber;
+
+            // Add chunks to the waiting list, necessary to know when the file is ready to be restored
             Peer.getData().addWaitingChunk(chunkID);
 
-            if(Peer.getVersion().equals("2.0")) {
-
+            // GETCHUNK message only contains the body with the chunk data in version 1.0
+            if (Peer.getVersion().equals("2.0")) {
                     int port = Peer.port;
                     message = MessageParser.makeGetChunkMessage(Integer.toString(port),Peer.getVersion(), "GETCHUNK", Peer.getPeerID() , fileID, Integer.toString(chunkNumber));
                     Peer.executor.execute(new Thread(() -> sendMessage(message)));
@@ -63,22 +70,24 @@ public class MulticastControlChannel extends MulticastChannel {
         }
     }
 
+    // Delete protocol
     public void delete( String filename) {
         if (filename == null) {
             throw new IllegalArgumentException("Invalid filename");
         }
 
         String path = Peer.getPersonalFilesPath() + "/" + filename;
-
         File file = new File(path);
 
+        // Check if the file to delete belongs to the current peer
         if (!file.exists()) {
-            System.out.println("File " + filename + " doesn't belong to this peer.");
+            System.err.println("File " + filename + " doesn't belong to this peer.");
             return;
         }
 
         String fileID = this.createId(this.peerID, path, file.lastModified());
 
+        // Peer assumes that every peer backing up the file will delete their chunks in version 1.0, and waits for their responses in version 2.0
         if (Peer.getVersion().equals("1.0")) {
             Peer.getData().resetPeersBackingUp(fileID);
             Peer.getData().deleteFileFromMap(fileID);
@@ -89,6 +98,7 @@ public class MulticastControlChannel extends MulticastChannel {
 
         System.out.println("MC sending :: DELETE Sender " + this.peerID + " file " + fileID);
 
+        // Send the DELETE message to warn the other peers to delete their local copies of chunks of the file to delete
         byte[] message =  MessageParser.makeHeader(Peer.getVersion(), "DELETE", this.peerID , fileID);
         Random random = new Random();
         Peer.executor.schedule(new Thread(() ->
@@ -97,13 +107,16 @@ public class MulticastControlChannel extends MulticastChannel {
         );
     }
 
+    // Reclaim protocol
     public void reclaim(int disk_space) {
+        // Set the new total space of the peer, in bytes
         Peer.getData().setTotalSpace(disk_space * 1000);
-        // While there is still not enough space, we need to delete more chunks
+
+        // Delete chunks until the total space is respected
         if (Peer.getData().allocateSpace()) {
             System.out.println("Reclaim successful: Peer " + Peer.getPeerID() + " now has " + (Peer.getData().getTotalSpace() - Peer.getData().getOccupiedSpace()) + " free space");
         }
         else
-            System.out.println("Error reclaiming space on peer " + Peer.getPeerID());
+            System.err.println("Error reclaiming space on peer " + Peer.getPeerID());
     }
 }

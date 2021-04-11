@@ -82,4 +82,15 @@ esac
 
 java client.TestApp ${pap} ${oper} ${opernd_1} ${rep_deg}
 
-#read  -n 1 -p "Input Selection:" mainmenuinput
+# Examples of running command lines:
+
+# ..\scripts\test.sh Peer1 BACKUP FichaPPIN.pdf 2
+# ..\scripts\test.sh Peer1 RESTORE FichaPPIN.pdf
+
+# ..\scripts\test.sh Peer3 BACKUP Cartografia.pdf 1
+# ..\scripts\test.sh Peer3 RESTORE Cartografia.pdf
+
+# ..\scripts\test.sh Peer1 DELETE FichaPPIN.pdf
+# ..\scripts\test.sh Peer1 RECLAIM 150
+
+# ..\scripts\test.sh Peer1 STATE

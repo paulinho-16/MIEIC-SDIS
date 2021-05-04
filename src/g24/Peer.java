@@ -1,22 +1,22 @@
 package g24;
 
-import java.io.IOException;
-import java.rmi.AccessException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import g24.storage.*;
+import g24.message.*;
 
 public class Peer implements IRemote {
 
-    private Storage storage;
     private Chord chord;
-    
+    private MessageReceiver receiver;
+    private Storage storage = new Storage();
+    private ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(250);
 
     // accessPoint ip port [successorIp successorPort]
-
     public static void main(String[] args) throws Exception {
 
         // Validate number of arguments
@@ -59,23 +59,28 @@ public class Peer implements IRemote {
             peer = new Peer(peerIp, peerPort);
         }
         
-        IRemote remote = (IRemote) UnicastRemoteObject.exportObject(peerAp, 0);
+        IRemote remote = (IRemote) UnicastRemoteObject.exportObject(peer, 0);
         registry.rebind(peerAp, remote);
 
         System.out.println("REGISTRY :: Peer registered with name " + peerAp);
     }
 
     public Peer(String ip, int port) {
-        this.storage = new Storage();
-        this.chord = new Chord(ip, port);
+        try {
+            this.chord = new Chord(ip, port);
+            this.receiver = new MessageReceiver(port, this.executor, this.chord);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public Peer(String ip, int port, String successorIp, int successorPort) {
-        this.storage = new Storage();
-        this.chord = new Chord(ip, port, successorIp, successorPort);
-
+        try {
+            this.chord = new Chord(ip, port, successorIp, successorPort);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-
 
     @Override
     public void backup(String fileName, int replicationDegree) throws RemoteException {

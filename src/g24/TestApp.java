@@ -48,19 +48,18 @@ class TestApp {
                     System.out.println(result);
                     break;
                 default:
-                    Utils.error("Invalid sub protocol");
+                    System.err.println("Invalid sub protocol");
                     System.exit(1);
             }
         
         } catch(NumberFormatException e){
-            Utils.error("Invalid operands");
+            System.err.println("Invalid operands");
             System.exit(1);
         }
         catch(Exception e) {
-            Utils.error("Remote Object Exception");
+            System.err.println("Remote Object Exception");
             System.exit(1);
         }
-        
     }
 
     public static void usage(){

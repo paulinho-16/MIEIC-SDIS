@@ -3,8 +3,6 @@ package g24;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 
-import g24.Utils;
-
 public class Identifier {
     private String ip;
     private int port;
@@ -21,8 +19,12 @@ public class Identifier {
             this.id = Utils.generateHash(key);
         }
         catch(NoSuchAlgorithmException e) {
-            this.id = new Random().nextInt() % ((int) Math.pow(2, Utils.m));   
+            this.id = new Random().nextInt() % ((int) Math.pow(2, Utils.m));
         }
+    }
+
+    public Identifier() {
+        this.id = -1;
     }
 
     public Identifier(int id) {
@@ -33,16 +35,20 @@ public class Identifier {
         return this.id;
     }
 
-    public String getIp(){
+    public String getIp() {
         return this.ip;
     }
 
-    public int getPort(){
+    public int getPort() {
         return this.port;
     }
 
-    public String toString(){
+    public String toString() {
         return Integer.toString(this.id);
+    }
+
+    public String summary() {
+        return "ID: " + this.toString() + " SUCCESSOR: " + this.successor.toString() + " PREDECESSOR: " + this.predecessor.toString();
     }
 
     public int compareTo(Identifier o1) {
@@ -63,7 +69,7 @@ public class Identifier {
     }
 
     public Identifier getSuccessor() {
-        return successor;
+        return this.successor;
     }
 
     public void setSuccessor(Identifier successor) {
@@ -71,7 +77,7 @@ public class Identifier {
     }
 
     public Identifier getPredecessor() {
-        return predecessor;
+        return this.predecessor;
     }
 
     public void setPredecessor(Identifier predecessor) {

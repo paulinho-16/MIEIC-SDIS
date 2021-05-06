@@ -1,6 +1,8 @@
 package g24.protocol;
 
 import java.io.DataOutputStream;
+import java.io.IOException;
+
 import g24.*;
 
 public class FindSuccessor extends Handler {
@@ -17,14 +19,14 @@ public class FindSuccessor extends Handler {
     public void run() {
         Identifier successor = chord.findSuccessor(this.node);
 
-        try{
+        try {
             DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
-            out.writeBytes(successor.getIp() + " " + successor.getPort());
-    
+            byte[] message = (successor.getIp() + " " + successor.getPort()).getBytes();
+            out.write(message, 0, message.length);
+            out.flush();
             out.close();
-            this.socket.close();
         }
-        catch(IOException e){
+        catch(IOException e) {
             e.printStackTrace();
         }
     }

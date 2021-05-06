@@ -1,7 +1,9 @@
 package g24.message;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.DataInputStream;
+import java.io.BufferedReader;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import javax.net.ssl.SSLSocket;
 
@@ -25,14 +27,17 @@ public class MessageHandler {
     }
     
     private Handler parse(SSLSocket socket) throws IOException {
-
-        // Reading an object
+        
         DataInputStream in = new DataInputStream(socket.getInputStream());
-        byte[] data = in.readAllBytes();
+        
+        //byte[] data = in.readAllBytes();
+        byte[] data = new byte[1000];
+        int bytesRead = in.read(data);
 
-        // Close streams
-        in.close();
-        Handler handler = this.prepare(data);
+        byte[] short_data = new byte[bytesRead];
+        System.arraycopy(data, 0, short_data, 0, bytesRead);
+
+        Handler handler = this.prepare(short_data);
         handler.setSocket(socket);
 
         return handler;
@@ -48,7 +53,7 @@ public class MessageHandler {
         // NOTIFY -> <MessageType> <NewNode> <CRLF><CRLF>
         // FINDSUCCESSOR -> <MessageType> <NewNode> <CRLF><CRLF>
         // GETPREDECESSOR -> <MessageType> <CRLF><CRLF>
-        
+
         // Parse Header
         int i;  // Breakpoint index for header
         for (i = 0; i < message.length; i++) {
@@ -67,7 +72,8 @@ public class MessageHandler {
         String header = new String(Arrays.copyOfRange(message, 0, i));  // Get Header from the message
         String[] splitHeader = header.trim().split("\\s+"); // Remove extra spaces and separate header component
 
-        // Parse header parameters
+        // System.out.println("RECEIVED: " + header);
+        // System.out.println("--------------------------------");
 
         // Call the respective handler
         switch(splitHeader[0]) {
@@ -80,8 +86,8 @@ public class MessageHandler {
             case "ONLINE":
                 return new Online();
             case "NOTIFY":
-                return new Notify(Integer.parseInt(splitHeader[1]), this.chord);
-            case "FINDSUCCESSOR": 
+                return new Notify(splitHeader[1], Integer.parseInt(splitHeader[2]), this.chord);
+            case "FINDSUCCESSOR":
                 return new FindSuccessor(Integer.parseInt(splitHeader[1]), this.chord);
             case "GETPREDECESSOR":
                 return new GetPredecessor(this.chord);
@@ -89,6 +95,8 @@ public class MessageHandler {
                 System.err.println("Message is not recognized by the parser");
                 break;
         }
+
+        System.out.println("Parse failed");
 
         return null;
     }

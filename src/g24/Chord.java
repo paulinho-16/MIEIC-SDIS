@@ -1,13 +1,13 @@
 package g24;
 
 import java.io.DataOutputStream;
-import java.net.SocketTimeoutException;
+import java.net.SocketException;
 import java.io.DataInputStream;
-import java.nio.charset.StandardCharsets;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.SSLSocket;
-import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Chord {
@@ -19,17 +19,25 @@ public class Chord {
     public Chord(String ip, int port) {
         this.id = new Identifier(ip, port);
         this.id.setSuccessor(this.id);
-        this.fingerTable = new ConcurrentHashMap<>();
-    }
+        this.id.setPredecessor(new Identifier());
 
-    public Chord(String ip, int port, String successorIp, int successorPort) {
-
-        this.id = new Identifier(ip, port);
-        this.id.setSuccessor(new Identifier(successorIp, successorPort));
         this.fingerTable = new ConcurrentHashMap<>();
 
         for (int i = Utils.m; i >= 1; i--) {
-            this.fingerTable.put(i,null);
+            this.fingerTable.put(i, new Identifier());
+        }
+    }
+
+    public Chord(String ip, int port, String successorIp, int successorPort) {
+        this.id = new Identifier(ip, port);
+        this.id.setSuccessor(new Identifier(successorIp, successorPort));
+        //this.fingerTable.put(1, new Identifier(successorIp, successorPort));
+        this.id.setPredecessor(new Identifier());
+
+        this.fingerTable = new ConcurrentHashMap<>();
+
+        for (int i = Utils.m; i >= 1; i--) {
+            this.fingerTable.put(i, new Identifier());
         }
 
         this.join(this.id.getSuccessor());
@@ -38,18 +46,26 @@ public class Chord {
 
     // Join a Chord ring containing node knownNode
     public void join(Identifier knownNode) {
+        // Identifier x = this.findSuccessor(knownNode, this.id);
         this.id.setSuccessor(this.findSuccessor(knownNode, this.id));
+        // this.fingerTable.put(1, x);
     }
 
     public Identifier findSuccessor(Identifier nextNode, Identifier newNode) {
-        // Send FINDSUCCESSOR newNode to nextNode
-        byte [] response =  sendMessage(nextNode.getIp(), nextNode.getPort(), false, "FINDSUCCESSOR", this.id.toString());
-        
+
+        if(newNode.equals(this.id))
+            return this.id.getSuccessor();
+
+        byte [] response =  sendMessage(nextNode.getIp(), nextNode.getPort(), false, "FINDSUCCESSOR", newNode.toString());
+            
         // Receive IP and Port from successor
         String s = new String(response);
+
+        if(s.equals("NOT_FOUND"))
+            return this.id;
+
         String[] splitResponse = s.split(" ");
 
-        // response => ip port
         return new Identifier(splitResponse[0], Integer.parseInt(splitResponse[1]));
     }
 
@@ -72,7 +88,7 @@ public class Chord {
                 
         for (int i = Utils.m; i >= 1; i--) {
             Identifier finger = this.fingerTable.get(i);
-            if(finger != null && finger.between(this.id, newNode)) {
+            if(!finger.equals(new Identifier()) && finger.between(this.id, newNode)) {
                 return finger;
             }
         }
@@ -82,10 +98,14 @@ public class Chord {
 
     public Identifier getPredecessor(Identifier node) {
         // Send GETPREDECESSOR newNode to nextNode
-        byte [] response =  sendMessage(node.getIp(), node.getPort(), false, "GETPREDECESSOR");
+        byte[] response =  sendMessage(node.getIp(), node.getPort(), false, "GETPREDECESSOR");
 
         // Receive IP and Port from successor
         String s = new String(response);
+
+        if(s.equals("NOT_FOUND"))
+            return new Identifier();
+
         String[] splitResponse = s.split(" ");
 
         // response => ip port
@@ -94,81 +114,110 @@ public class Chord {
 
     // Called periodically, verifies n's immediate successor, and tells the successor about n
     public void stabilize() {
+
+        // System.out.println("PERIODICALLY: STABILIZE");
         // Mandar mensagem ao sucessor a perguntar pelo predecessor
         Identifier x = this.getPredecessor(this.id.getSuccessor());
         if(x.between(this.id, this.id.getSuccessor())) {
             this.id.setSuccessor(x);
+            //this.fingerTable.put(1, x);
         }
-        // This notify does not exist
+
         this.notifySuccessor();
     }
 
     // Send NOTIFY this.id to this.id.successor
     public void notifySuccessor() {
         Identifier successor = this.id.getSuccessor();
-        byte [] response =  sendMessage(successor.getIp(), successor.getPort(), false,"NOTIFY", this.id.toString());
+        byte[] response = sendMessage(successor.getIp(), successor.getPort(), false, "NOTIFY", this.id.getIp(), Integer.toString(this.id.getPort()));
     }
 
     // lastPredecessor thinks it might be our predecessor
     public void notify(Identifier lastPredecessor) {
         Identifier predecessor = this.id.getPredecessor();
-        if(predecessor == null || lastPredecessor.between(predecessor, this.id)) {
+        if(predecessor.equals(new Identifier()) || lastPredecessor.between(predecessor, this.id)) {
             this.id.setPredecessor(lastPredecessor);
         }
     }
 
     // Called periodically, refreshes finger table entries, next stores the index of the next finger to fix
     public void fix_fingers() {
+
+        // System.out.println("PERIODICALLY: FIX FINGERS");
+        
         this.next++;
         if (this.next > Utils.m)
             this.next = 1;
     
         this.fingerTable.put(this.next, findSuccessor(this.id.getNext(this.next)));
+
+        System.out.println(this.fingerTable.toString());
     }
 
     // Called periodically, checks whether predecessor has failed
     public void checkPredecessor() {
-        if (this.hasFailed(this.id.getPredecessor()))
-            this.id.setPredecessor(null);
+
+        // System.out.println("PERIODICALLY: CHECK PREDECESSOR");
+
+        if (this.hasFailed(this.id.getPredecessor())) {
+            this.id.setPredecessor(new Identifier());
+            // System.out.println("PREDECESSOR FAILED");
+        }
     }
 
     public boolean hasFailed(Identifier node) {
-        // TODO: mandar mensagem pro node a ver se ele ta online com delay de 500 ms
-        // Send ONLINE to node
-        byte[] response =  sendMessage(node.getIp(), node.getPort(), true, "ONLINE");
+        // Send ONLINE to node with delay of 500ms
+        // System.out.println("PERIODICALLY: HAS FAILED");
+        byte[] response = new byte[0];
+
+        if(!node.equals(new Identifier()))
+            response = sendMessage(node.getIp(), node.getPort(), true, "ONLINE");
 
         return response.length == 0;
     }
 
     public byte[] sendMessage(String ip, int port, boolean timeout, String... headerString) {
 
+        if(new Identifier(ip,port).equals(this.id))
+            return new byte[0];
+
         byte[] message = (String.join(" ", headerString) + Utils.CRLF + Utils.CRLF).getBytes();
+
+        // System.out.println("SEND: " + String.join(" ", headerString));
+        // System.out.println("--------------------------------");
 
         try {
             // Initialize Sockets
             SSLSocketFactory factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
+            // ArrayList<String> cypher_suites = new ArrayList<String>(Arrays.asList(factory.getSupportedCipherSuites()));
             SSLSocket socket = (SSLSocket) factory.createSocket(ip, port);
+            socket.setEnabledCipherSuites(Utils.CYPHER_SUITES);
             socket.startHandshake();
+
             if(timeout) {
                 socket.setSoTimeout(500);
             }
             
-            // Send CHUNK message through the port
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+
             out.write(message, 0, message.length);
-            
-            // Receive the response
-            DataInputStream in = new DataInputStream(socket.getInputStream());
-            byte[] response = in.readAllBytes();
-            
-            // Closing buffers
             out.flush();
-            out.close();
+
+            DataInputStream in = new DataInputStream(socket.getInputStream());
+            byte[] response = new byte[1000];
+            int bytesRead = in.read(response);
+            byte[] short_data = new byte[bytesRead];
+            System.arraycopy(response, 0, short_data, 0, bytesRead);
+
+            // System.out.println("RECEIVED: " + new String(response));
+            // System.out.println("--------------------------------");
+
             in.close();
+            out.close();
             socket.close();
 
-            return response;
-        } catch (SocketTimeoutException e) {
+            return short_data;
+        } catch (SocketException e) {
             return new byte[0];
         }  catch (Exception e) {
             e.printStackTrace();
@@ -177,7 +226,11 @@ public class Chord {
         return new byte[0];
     }
 
-    public Identifier getId(){
+    public Identifier getId() {
         return this.id;
+    }
+
+    public void getSummary() {
+        System.out.println(this.id.summary());
     }
 }

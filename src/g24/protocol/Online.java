@@ -1,18 +1,17 @@
 package g24.protocol;
 
 import java.io.DataOutputStream;
-
-import g24.*;
+import java.io.IOException;
 
 public class Online extends Handler {
-
     @Override
     public void run() {
         try {
             DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
-            out.writeBytes("Hello from the other side");
+            byte[] message = ("HELLO DARKNESS MY OLD FRIEND").getBytes();
+            out.write(message, 0, message.length);
+            out.flush();
             out.close();
-            this.socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

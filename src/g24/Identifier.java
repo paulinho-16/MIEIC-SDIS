@@ -85,7 +85,14 @@ public class Identifier {
     }
 
     public boolean between(Identifier o1, Identifier o2) {
-        return o1.lessThan(this) && this.lessThan(o2);
+        
+        if (o1.lessThan(o2)) {
+            return o1.lessThan(this) && this.lessThan(o2);
+        } 
+        
+        return o1.lessThan(this) || this.lessThan(o2);
+        
+        //return o1.lessThan(this) && this.lessThan(o2);
     }
 
     public Identifier getNext(int next) {

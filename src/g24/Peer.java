@@ -8,13 +8,14 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import g24.storage.*;
+import g24.handler.BackupHandler;
 import g24.message.*;
 
 public class Peer implements IRemote {
 
     private Chord chord;
     private MessageReceiver receiver;
-    private Storage storage = new Storage();
+    private Storage storage;
     private ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(250);
 
     // accessPoint ip port [successorIp successorPort]
@@ -68,9 +69,9 @@ public class Peer implements IRemote {
 
     public Peer(String ip, int port) {
         try {
-            // this.setProperties();
             this.chord = new Chord(ip, port);
-            this.receiver = new MessageReceiver(port, this.executor, this.chord);
+            this.storage = new Storage(this.chord.getId(), this.executor);
+            this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
             this.executor.execute(this.receiver);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 5000, 5000, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fix_fingers()), 5000, 5000, TimeUnit.MILLISECONDS);
@@ -83,9 +84,9 @@ public class Peer implements IRemote {
 
     public Peer(String ip, int port, String successorIp, int successorPort) {
         try {
-            // this.setProperties();
             this.chord = new Chord(ip, port, successorIp, successorPort);
-            this.receiver = new MessageReceiver(port, this.executor, this.chord);
+            this.storage = new Storage(this.chord.getId(), this.executor);
+            this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
             this.executor.execute(this.receiver);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 5000, 5000, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fix_fingers()), 5000, 5000, TimeUnit.MILLISECONDS);
@@ -96,22 +97,27 @@ public class Peer implements IRemote {
         }
     }
 
-    private void setProperties() {
-        // Set the type of the trust store
-        System.setProperty("java.net.ssl.trustStoreType", "JKS");
-        // Set the password with which the truststore is encripted
-        System.setProperty("java.net.ssl.trustStorePassword", "123456");
-        // Set the name of the trust store containing the client's public key and certificate
-        System.setProperty("java.net.ssl.trustStore", "./keys/truststore");
-        // Set the password with which the client keystore is encripted
-        System.setProperty("java.net.ssl.keyStorePassword", "123456");
-        // Set the name of the keystore containing the server's private and public keys
-        System.setProperty("java.net.ssl.keyStore", "./keys/server.keys");
-    }
-
     @Override
     public void backup(String fileName, int replicationDegree) throws RemoteException {
-        // TODO Auto-generated method stub
+        
+        try{
+            FileData fileData = new FileData(fileName, replicationDegree);
+            int counter =  Math.min(replicationDegree, Utils.m);
+            this.storage.addBackupFile(fileData.getFileID(), fileData);
+
+            for(int i = 1; i <= counter; i++) {
+                Identifier receiver = this.chord.getFingerTable().get(i);
+                if(!this.chord.getId().equals(receiver)) {
+                    this.executor.execute(new BackupHandler(this.chord, receiver, fileData));
+                }
+            }
+
+            // TODO: If the replication degree is higher than the size of the finger table
+
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.err.println("Could not backup file " + fileName);
+        }
 
     }
 

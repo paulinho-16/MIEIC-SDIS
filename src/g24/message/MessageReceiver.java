@@ -7,6 +7,7 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import g24.*;
+import g24.storage.Storage;
 
 public class MessageReceiver implements Runnable {
     private SSLServerSocket socket;
@@ -14,10 +15,10 @@ public class MessageReceiver implements Runnable {
     private Chord chord;
     //private String[] cypher_suites;
 
-    public MessageReceiver(int port, ScheduledThreadPoolExecutor scheduler, Chord chord) throws IOException {
+    public MessageReceiver(int port, ScheduledThreadPoolExecutor scheduler, Chord chord, Storage storage) throws IOException {
 
         this.chord = chord;
-        this.handler = new MessageHandler(scheduler, this.chord);
+        this.handler = new MessageHandler(scheduler, this.chord, storage);
         
         // Creating Server Socket
         SSLServerSocketFactory ssf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();

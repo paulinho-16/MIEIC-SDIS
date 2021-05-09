@@ -6,8 +6,6 @@ import java.io.DataInputStream;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.SSLSocket;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Chord {
@@ -52,7 +50,7 @@ public class Chord {
 
     public Identifier findSuccessor(Identifier nextNode, Identifier newNode) {
 
-        byte[] response = sendMessage(nextNode.getIp(), nextNode.getPort(), false, "FINDSUCCESSOR", newNode.toString());
+        byte[] response = sendMessage(nextNode.getIp(), nextNode.getPort(), 0, null, "FINDSUCCESSOR", newNode.toString());
 
         // Receive IP and Port from successor
         String s = new String(response);
@@ -100,7 +98,7 @@ public class Chord {
         if(node.equals(this.id)) return this.id.getPredecessor();
         
         // Send GETPREDECESSOR newNode to nextNode
-        byte[] response = sendMessage(node.getIp(), node.getPort(), false, "GETPREDECESSOR");
+        byte[] response = sendMessage(node.getIp(), node.getPort(), 0, null, "GETPREDECESSOR");
 
         // Receive IP and Port from successor
         String s = new String(response);
@@ -121,7 +119,7 @@ public class Chord {
         // System.out.println("PERIODICALLY: STABILIZE");
         // Mandar mensagem ao sucessor a perguntar pelo predecessor
         Identifier x = this.getPredecessor(this.id.getSuccessor());
-        if (!x.equals(new Identifier()) && (x.between(this.id, this.id.getSuccessor()) ||  this.id.equals(this.id.getSuccessor()))) {
+        if (!x.equals(new Identifier()) && x.between(this.id, this.id.getSuccessor())) {
             this.id.setSuccessor(x);
             this.fingerTable.put(1, x);
         }
@@ -132,7 +130,7 @@ public class Chord {
     // Send NOTIFY this.id to this.id.successor
     public void notifySuccessor() {
         Identifier successor = this.id.getSuccessor();
-        byte[] response = sendMessage(successor.getIp(), successor.getPort(), false, "NOTIFY", this.id.getIp(),
+        byte[] response = sendMessage(successor.getIp(), successor.getPort(), 0, null, "NOTIFY", this.id.getIp(),
                 Integer.toString(this.id.getPort()));
     }
 
@@ -156,7 +154,7 @@ public class Chord {
 
         this.fingerTable.put(this.next, findSuccessor(this.id.getNext(this.next)));
 
-        System.out.println(this.fingerTable.toString());
+        System.out.println("ID " +  this.id.toString() + ": " + this.fingerTable.toString() + " GETNEXT " + this.id.getNext(this.next).toString());
     }
 
     // Called periodically, checks whether predecessor has failed
@@ -176,17 +174,25 @@ public class Chord {
         byte[] response = new byte[0];
 
         if (!node.equals(new Identifier()))
-            response = sendMessage(node.getIp(), node.getPort(), true, "ONLINE");
+            response = sendMessage(node.getIp(), node.getPort(), 500, null, "ONLINE");
 
         return response.length == 0;
     }
 
-    public byte[] sendMessage(String ip, int port, boolean timeout, String... headerString) {
+    public byte[] sendMessage(String ip, int port, int timeout, byte[] body, String... headerString) {
 
         if (new Identifier(ip, port).equals(this.id))
             return new byte[0];
 
-        byte[] message = (String.join(" ", headerString) + Utils.CRLF + Utils.CRLF).getBytes();
+        byte[] message;
+
+        if(body != null){
+            System.out.println("Body Length = " + body.length);
+            message = this.makeMessage(body, headerString);
+        }
+        else{
+            message = this.makeHeader(headerString);
+        }
 
         // System.out.println("SEND: " + String.join(" ", headerString));
         // System.out.println("--------------------------------");
@@ -194,14 +200,12 @@ public class Chord {
         try {
             // Initialize Sockets
             SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            // ArrayList<String> cypher_suites = new
-            // ArrayList<String>(Arrays.asList(factory.getSupportedCipherSuites()));
             SSLSocket socket = (SSLSocket) factory.createSocket(ip, port);
             socket.setEnabledCipherSuites(Utils.CYPHER_SUITES);
             socket.startHandshake();
 
-            if (timeout) {
-                socket.setSoTimeout(500);
+            if (timeout > 0) {
+                socket.setSoTimeout(timeout);
             }
 
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
@@ -236,7 +240,26 @@ public class Chord {
         return this.id;
     }
 
+    public ConcurrentHashMap<Integer, Identifier> getFingerTable() {
+        return this.fingerTable;
+    }
+
     public void getSummary() {
         System.out.println(this.id.summary());
     }
+
+    private byte[] makeMessage(byte[] body, String... headerString) {
+        byte[] header = (String.join(" ", headerString) + Utils.CRLF + Utils.CRLF).getBytes();
+        byte[] message = new byte[header.length + body.length];
+        System.arraycopy(header, 0, message, 0, header.length);
+        System.arraycopy(body, 0, message, header.length, body.length);
+
+        return message;
+    }
+
+    // Create a message with header only, no body
+    private byte[] makeHeader(String... headerString) {
+        return (String.join(" ", headerString) + Utils.CRLF + Utils.CRLF).getBytes();
+    }
+
 }

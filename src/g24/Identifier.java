@@ -96,6 +96,7 @@ public class Identifier {
     }
 
     public Identifier getNext(int next) {
-        return new Identifier((int) (this.id + Math.pow(2, next - 1)));
+        
+        return new Identifier((int) ((this.id + Math.pow(2, next - 1)) % ((int) Math.pow(2, Utils.m))));
     }
 }

@@ -66,12 +66,9 @@ public class MessageParser {
             }
         }
 
-        // Get body from the message
-        this.body = Arrays.copyOfRange(message, i+4, message.length);
-
         // Get header from the message
         String header = new String(Arrays.copyOfRange(message, 0, i));  // Get Header from the message
-        String[] splitHeader = header.trim().split("\s"); // Remove extra spaces and separate header component
+        String[] splitHeader = header.trim().split("\\s+"); // Remove extra spaces and separate header component
 
         // Parse header parameters
         for(int j = 0; j < splitHeader.length;j++) {
@@ -80,9 +77,17 @@ public class MessageParser {
            else if(j == 2) this.senderID = splitHeader[2];
            else if(j == 3) this.fileID = splitHeader[3];
            else if(j == 4) this.chunkNo = Integer.parseInt(splitHeader[4]);
-           else if(j == 5 && this.messageType.equals("GETCHUNK") && this.version.equals("2.0")) this.port = Integer.parseInt(splitHeader[5].split(CRLF)[1]);
+           else if(j == 5 && this.messageType.equals("GETCHUNK") && this.version.equals("2.0")) {
+               try { this.port = Integer.parseInt(splitHeader[5].split(CRLF)[0]);} catch(Exception e) {e.printStackTrace();}
+           }
            else if(j == 5) this.replicationDeg = Integer.parseInt(splitHeader[5]);
+
            else return false;
+        }
+
+        // Get body from the message
+        if (this.messageType.equals("PUTCHUNK") || (this.messageType.equals("CHUNK"))) {
+            this.body = Arrays.copyOfRange(message, i + 4, message.length);
         }
 
         return true;
@@ -105,7 +110,7 @@ public class MessageParser {
     }
 
     // Create the 2.0 version GETCHUNK message that contains 2 lines separated by CRLF
-    public static byte[] makeGetChunkMessage(String port, String... headerString){
+    public static byte[] makeGetChunkMessage(String port, String... headerString) {
         return (String.join(" ", headerString) + " " + CRLF +
                 port + " " + CRLF + CRLF).getBytes();
     }

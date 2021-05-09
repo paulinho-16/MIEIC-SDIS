@@ -22,7 +22,7 @@ public class TCPHandler implements Runnable {
     public void run() {
         while(true) {
             try {
-                // Raise a ClientHanlder when the TCP connection is established
+                // Raise a ClientHandler when the TCP connection is established
                 new ClientHandler(serverSocket.accept()).start();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -43,7 +43,10 @@ public class TCPHandler implements Runnable {
                 // Reading an object
                 DataInputStream in = new DataInputStream(clientSocket.getInputStream());
 
-                byte[] data = in.readAllBytes();
+                // byte[] data = in.readAllBytes(); -> Apenas suportado para Java 9+
+
+                byte[] data = new byte[clientSocket.getInputStream().available()];
+                in.readFully(data);
 
                 MessageParser messageParser = new MessageParser(data);
 

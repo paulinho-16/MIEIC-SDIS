@@ -39,15 +39,15 @@ public class MessageHandler implements Runnable {
 
         // Call the respective handler
         switch (messageParser.getMessageType()) {
-            case "PUTCHUNK" -> handlePUTCHUNK();
-            case "STORED" -> handleSTORED();
-            case "GETCHUNK" -> handleGETCHUNK();
-            case "CHUNK" -> handleCHUNK();
-            case "DELETE" -> handleDELETE();
-            case "REMOVED" -> handleREMOVED();
-            case "DELETED" -> handleDELETED();
-            case "HELLO" -> handleHELLO();
-            default -> System.err.println("Invalid message type received: " + messageParser.getMessageType());
+            case "PUTCHUNK": handlePUTCHUNK(); break;
+            case "STORED": handleSTORED(); break;
+            case "GETCHUNK": handleGETCHUNK(); break;
+            case "CHUNK": handleCHUNK(); break;
+            case "DELETE": handleDELETE(); break;
+            case "REMOVED": handleREMOVED(); break;
+            case "DELETED": handleDELETED(); break;
+            case "HELLO": handleHELLO(); break;
+            default: System.err.println("Invalid message type received: " + messageParser.getMessageType());
         }
     }
 

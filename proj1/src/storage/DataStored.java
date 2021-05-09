@@ -79,13 +79,13 @@ public class DataStored implements Serializable {
     public int getFileReplicationDegree(String fileID) {
         FileData fileData = personalBackedUpFiles.get(fileID);
         CopyOnWriteArraySet<String> chunks = fileData.getBackupChunks();
-        int curRepDeg = Integer.MAX_VALUE;
+        int curRepDeg = 0;
 
         for (String chunkID : chunks) {
             if (!chunksRepDegrees.containsKey(chunkID))
                 return 0;
             int chunkRepDeg = chunksRepDegrees.get(chunkID).size();
-            if (curRepDeg > chunkRepDeg) {
+            if (chunkRepDeg > curRepDeg) {
                 curRepDeg = chunkRepDeg;
             }
         }

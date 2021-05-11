@@ -2,6 +2,7 @@ package g24;
 
 import java.io.DataOutputStream;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.io.DataInputStream;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -227,7 +228,11 @@ public class Chord {
             socket.close();
 
             return short_data;
-        } catch (SocketException e) {
+        } catch (SocketTimeoutException e){
+            System.err.println("No response from peer");
+            return new byte[0];
+        }
+        catch (SocketException e) {
             return new byte[0];
         } catch (Exception e) {
             e.printStackTrace();

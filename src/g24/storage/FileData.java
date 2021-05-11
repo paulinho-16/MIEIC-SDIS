@@ -3,9 +3,11 @@ package g24.storage;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ConcurrentHashMap;
 
+import g24.Identifier;
 import g24.Utils;
 
 // Class that stores info about a given file
@@ -14,7 +16,7 @@ public class FileData implements Serializable {
     private File file;
     private String fileID;
     private int replicationDegree;
-    private ConcurrentHashMap<Integer,Boolean> peers;
+    private ConcurrentHashMap<Identifier,Boolean> peers;
     private byte[] data;
 
     public FileData(String filename, int replicationDegree) {
@@ -27,7 +29,7 @@ public class FileData implements Serializable {
 			e.printStackTrace();
 		}
         this.replicationDegree = replicationDegree;
-        this.peers = new ConcurrentHashMap<Integer,Boolean>();
+        this.peers = new ConcurrentHashMap<Identifier,Boolean>();
     }
 
     public FileData(String fileID, byte[] data){
@@ -51,11 +53,19 @@ public class FileData implements Serializable {
         return this.file;
     }
 
-    public void addPeer(int id){
+    public void addPeer(Identifier id){
         this.peers.put(id, true);
     }
 
     public int getTotalPeers(){
         return this.peers.size();
+    }
+
+    public ConcurrentHashMap<Identifier,Boolean> getPeers(){
+        return this.peers;
+    }
+
+    public byte[] getData() throws IOException{
+        return this.filename.isEmpty() ? this.data : Files.readAllBytes(this.getFile().toPath());
     }
 }

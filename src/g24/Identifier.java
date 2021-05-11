@@ -99,4 +99,14 @@ public class Identifier {
         
         return new Identifier((int) ((this.id + Math.pow(2, next - 1)) % ((int) Math.pow(2, Utils.m))));
     }
+
+    @Override
+    public boolean equals(Object o) {
+        return this.equals((Identifier) o);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.id;
+    }
 }

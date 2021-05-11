@@ -1,7 +1,6 @@
 package g24.protocol;
 
 import java.io.DataOutputStream;
-import java.nio.charset.StandardCharsets;
 
 import g24.storage.FileData;
 import g24.storage.Storage;

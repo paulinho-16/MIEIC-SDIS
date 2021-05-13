@@ -32,9 +32,14 @@ public class FileData implements Serializable {
         this.peers = new ConcurrentHashMap<Identifier,Boolean>();
     }
 
-    public FileData(String fileID, byte[] data){
+    public FileData(String fileID, byte[] data) {
        this.fileID = fileID;
        this.data = data;
+    }
+
+    public FileData(String fileID, String filename){
+        this.filename = filename;
+        this.fileID = fileID;
     }
 
     public String getFilename() {
@@ -53,19 +58,37 @@ public class FileData implements Serializable {
         return this.file;
     }
 
-    public void addPeer(Identifier id){
+    public void addPeer(Identifier id) {
         this.peers.put(id, true);
     }
 
-    public int getTotalPeers(){
+    public int getTotalPeers() {
         return this.peers.size();
     }
 
-    public ConcurrentHashMap<Identifier,Boolean> getPeers(){
-        return this.peers;
+    public ConcurrentHashMap<Identifier,Boolean> getPeers() {
+        return this.peers; 
     }
 
-    public byte[] getData() throws IOException{
-        return this.filename.isEmpty() ? this.data : Files.readAllBytes(this.getFile().toPath());
+    public byte[] getData() throws IOException {
+
+        if(this.data != null){
+            return this.data;
+        }
+
+        if(this.getFile() != null){
+            byte[] data = Files.readAllBytes(this.getFile().toPath());
+            return data;
+        }
+
+        return new byte[0];
+    }
+
+    public void setData(byte[] data) {
+        this.data = data;
+    }
+
+    public void setFilename(String filename) {
+        this.filename = filename;
     }
 }

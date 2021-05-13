@@ -9,11 +9,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.HashSet;
-import java.util.concurrent.ConcurrentHashMap;
-
 import g24.storage.*;
 import g24.handler.BackupHandler;
-import g24.handler.BackupExtraHandler;
+import g24.handler.RestoreHandler;
 import g24.message.*;
 
 public class Peer implements IRemote {
@@ -103,15 +101,14 @@ public class Peer implements IRemote {
     }
 
     @Override
-    public void backup(String fileName, int replicationDegree) throws RemoteException {
+    public void backup(String filename, int replicationDegree) throws RemoteException {
         
         try {
-            FileData fileData = this.storage.getBackupFile(fileName, replicationDegree);
+            FileData fileData = this.storage.getBackupFile(filename, replicationDegree);
 
-            int counter = Math.min(replicationDegree, Utils.m);
             this.storage.addBackupFile(fileData.getFileID(), fileData);
             
-            Identifier fileKey = new Identifier(Utils.generateHash(fileName));
+            Identifier fileKey = new Identifier(Utils.generateHash(fileData.getFilename()));
             
             // send to backupNode
             Identifier backupNode = this.chord.findSuccessor(fileKey);
@@ -147,36 +144,51 @@ public class Peer implements IRemote {
             
         } catch(Exception e) {
             e.printStackTrace();
-            System.err.println("Could not backup file " + fileName);
+            System.err.println("Could not backup file " + filename);
         }
     }
 
     @Override
-    public void restore(String fileName) throws RemoteException {
+    public void restore(String filename) throws RemoteException {
 
         String fileID = "";
-        // Identifier fileKey = new Identifier(Utils.generateHash(fileName));
 
         try {
-            fileID = Utils.generateFileHash(fileName);
+            fileID = Utils.generateFileHash(filename);
         
+            // If the peer has the file in its storage
             if(this.storage.hasFileStored(fileID)) {
                 
                 FileData fileData = this.storage.read(fileID);
+                fileData.setFilename(filename);
                 this.storage.storeRestored(fileData);
             }
             else {
                 // Request the backup from other peers
-                System.out.println("File: " + fileName + "doesn't exist");
+                Identifier fileKey = new Identifier(Utils.generateHash(filename));
+                Identifier backupNode = this.chord.findSuccessor(fileKey);
+
+                HashSet<Identifier> nextPeers = new HashSet<Identifier>();
+                nextPeers.add(backupNode);
+
+                int i = 1;
+
+                while (Utils.m >= i) {
+                    Identifier successor = this.chord.findSuccessor(backupNode.getNext(i));
+                    nextPeers.add(successor);
+                    i++;
+                }
+
+                this.executor.execute(new RestoreHandler(this.chord, nextPeers, new FileData(fileID, filename), this.storage));
             }
         } catch (ClassNotFoundException | NoSuchAlgorithmException | IOException e) {
             e.printStackTrace();
-            System.out.println("File: " + fileName + "could not be stored");
+            System.out.println("File: " + filename + "could not be stored");
         }
     }
 
     @Override
-    public void delete(String fileName) throws RemoteException {
+    public void delete(String filename) throws RemoteException {
         // TODO Auto-generated method stub
 
     }

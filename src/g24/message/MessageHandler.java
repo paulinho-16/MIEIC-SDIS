@@ -97,8 +97,10 @@ public class MessageHandler {
                 return new BackupExtra(splitHeader[1], Integer.parseInt(splitHeader[2]), this.storage, this.scheduler, this.chord);
             case "DELETE":
                 return new Delete(splitHeader[1]);
-            case "RESTORE": 
-                return new Restore(splitHeader[1]);
+            case "RESTORE": {
+                //System.out.println("RECEIVED RESTORE ");
+                return new Restore(splitHeader[1], this.storage);
+            }
             case "ONLINE":
                 return new Online();
             case "NOTIFY":

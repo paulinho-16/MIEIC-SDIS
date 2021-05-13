@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
+
 public class Storage {
     
     private ConcurrentHashMap<String, FileData> backupFiles; // Files backed up in the chord network
@@ -70,7 +71,7 @@ public class Storage {
         String fileDir = this.path + "/restore";
         Files.createDirectories(Paths.get(fileDir));
 
-        Path path = Paths.get(fileDir + "/file-" + file.getFileID() + ".ser");
+        Path path = Paths.get(fileDir + "/" + file.getFilename());
 
         Set<OpenOption> options = new HashSet<OpenOption>();
         options.add(StandardOpenOption.CREATE);
@@ -78,19 +79,18 @@ public class Storage {
 
         AsynchronousFileChannel channel = AsynchronousFileChannel.open(path, options, this.executor);
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(file);
-        oos.flush();
+        ByteBuffer buffer = ByteBuffer.allocate(file.getData().length);
 
-        ByteBuffer buffer = ByteBuffer.wrap(baos.toByteArray());
+        buffer.put(file.getData());
+
+        buffer.flip();
+
         Future<Integer> operation = channel.write(buffer, 0);
+
         while (!operation.isDone()) {
         }
 
         channel.close();
-        oos.close();
-        baos.close();
     }
 
     // Used by a peer to read a stored file from memory.
@@ -99,7 +99,7 @@ public class Storage {
         Path path = Paths.get(this.path + "/backup/file-" + fileID + ".ser");
 
         Set<OpenOption> options = new HashSet<OpenOption>();
-                options.add(StandardOpenOption.READ);
+        options.add(StandardOpenOption.READ);
         
         AsynchronousFileChannel channel = AsynchronousFileChannel.open(path, options, this.executor);
 

@@ -24,7 +24,7 @@ public class Backup extends Handler {
                     FileData newFileData = new FileData(this.fileID, this.data);
                     this.storage.store(newFileData);
                 }
-                DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
+                
                 byte[] message = ("OK").getBytes();
                 out.write(message, 0, message.length);
                 out.flush();

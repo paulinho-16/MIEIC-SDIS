@@ -17,7 +17,7 @@ public class GetPredecessor extends Handler {
 
         try {
             Identifier predecessor = this.chord.getId().getPredecessor();
-            DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
+            
             byte[] message;
             if (predecessor.equals(new Identifier())) {
                 message = ("NOT_FOUND").getBytes();

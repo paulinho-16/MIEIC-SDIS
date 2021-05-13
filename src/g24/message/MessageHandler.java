@@ -4,6 +4,7 @@ package g24.message;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.BufferedReader;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import javax.net.ssl.SSLSocket;
@@ -31,18 +32,26 @@ public class MessageHandler {
     }
     
     private Handler parse(SSLSocket socket) throws IOException {
-        
+
+        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
         DataInputStream in = new DataInputStream(socket.getInputStream());
+        byte[] response = new byte[Utils.FILE_SIZE + 200];
+        byte[] aux = new byte[Utils.FILE_SIZE + 200];
+        int bytesRead = 0;
+        int counter = 0;
+
+        int total = in.readInt();
+        while(counter != total) {
+            bytesRead = in.read(response);
+            System.arraycopy(response, 0, aux, counter, bytesRead);
+            counter += bytesRead;
+        }
+
+        byte[] result = new byte[counter];
+        System.arraycopy(aux, 0, result, 0, counter);
         
-        //byte[] data = in.readAllBytes();
-        byte[] data = new byte[1000];
-        int bytesRead = in.read(data);
-
-        byte[] short_data = new byte[bytesRead];
-        System.arraycopy(data, 0, short_data, 0, bytesRead);
-
-        Handler handler = this.prepare(short_data);
-        handler.setSocket(socket);
+        Handler handler = this.prepare(result);
+        handler.setSocket(socket, out, in);
 
         return handler;
     }

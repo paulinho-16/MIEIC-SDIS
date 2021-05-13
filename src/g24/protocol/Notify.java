@@ -16,7 +16,7 @@ public class Notify extends Handler {
     public void run() {
         try {
             this.chord.notify(this.node);
-            DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
+            
             // System.out.println("SENDING: NOTIFIED");
             byte[] message = ("NOTIFIED").getBytes();
             out.write(message, 0, message.length);

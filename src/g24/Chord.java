@@ -211,14 +211,20 @@ public class Chord {
 
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 
+            out.writeInt(message.length);
             out.write(message, 0, message.length);
             out.flush();
 
             DataInputStream in = new DataInputStream(socket.getInputStream());
-            byte[] response = new byte[1000];
-            int bytesRead = in.read(response);
-            byte[] short_data = new byte[bytesRead];
-            System.arraycopy(response, 0, short_data, 0, bytesRead);
+            byte[] response = new byte[Utils.FILE_SIZE + 200];
+            byte[] aux = new byte[Utils.FILE_SIZE + 200];
+            int bytesRead = 0;
+            int counter = 0;
+
+            while((bytesRead = in.read(response)) != -1) {
+                System.arraycopy(response, 0, aux, counter, bytesRead);
+                counter += bytesRead;
+            }
 
             // System.out.println("RECEIVED: " + new String(response));
             // System.out.println("--------------------------------");
@@ -227,7 +233,10 @@ public class Chord {
             out.close();
             socket.close();
 
-            return short_data;
+            byte[] result = new byte[counter];
+            System.arraycopy(aux, 0, result, 0, counter);
+            
+            return result;
         } catch (SocketTimeoutException e){
             System.err.println("No response from peer " + new Identifier(ip, port).toString());
             return new byte[0];

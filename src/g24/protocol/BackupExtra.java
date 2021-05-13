@@ -54,7 +54,7 @@ public class BackupExtra extends Handler {
                         response += peer.toString() + " ";
                     }
 
-                    DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
+                    
                     byte[] message = (response).getBytes();
                     out.write(message, 0, message.length);
                     out.flush();

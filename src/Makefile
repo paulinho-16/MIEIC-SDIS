@@ -40,8 +40,24 @@ peer5:
 peer6:
 	java ${PROPERTIES} g24.Peer peer6 0.0.0.0 9300 0.0.0.0 9050 &
 
-peers: peer1 peer2 peer3 peer4 peer5
+
+peers: 
+	make all
+	make peer1 > peer1.out
+	sleep 0.5
+	make peer2 > peer2.out
+	sleep 0.5
+	make peer3 > peer3.out 
+	sleep 0.5
+	make peer4 > peer4.out
+	sleep 0.5
+	make peer5 > peer5.out
+	sleep 0.5
+	make peer6 > peer6.out
 
 
 backup: 
-	java g24.TestApp peer1 BACKUP Makefile 2
+	java g24.TestApp peer1 BACKUP test/small_file.html 3
+
+restore:
+	java g24.TestApp peer5 RESTORE medium_file.pdf

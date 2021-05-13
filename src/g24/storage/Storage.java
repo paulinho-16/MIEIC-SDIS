@@ -132,5 +132,16 @@ public class Storage {
     public FileData getFileData(String fileID){
         // May return null
         return this.storedFiles.get(fileID);
-    }    
+    }
+
+    public FileData getBackupFile(String fileName, int replicationDegree){
+        FileData newFileData = new FileData(fileName, replicationDegree);
+        String fileID = newFileData.getFileID();
+        
+        if(this.backupFiles.containsKey(fileID)){
+            return this.backupFiles.get(fileID);
+        }
+
+        return newFileData;
+    }
 }

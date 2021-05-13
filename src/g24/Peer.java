@@ -106,51 +106,45 @@ public class Peer implements IRemote {
     public void backup(String fileName, int replicationDegree) throws RemoteException {
         
         try {
-            FileData fileData = new FileData(fileName, replicationDegree);
+            FileData fileData = this.storage.getBackupFile(fileName, replicationDegree);
+
             int counter = Math.min(replicationDegree, Utils.m);
             this.storage.addBackupFile(fileData.getFileID(), fileData);
-
-            if(replicationDegree >= Math.pow(2, Utils.m)){
-                System.out.println("The replication degree that was requested cannot be fulfilled.");
-                return;
-            }
             
-            System.out.println(this.chord.getFingerTable().values().toString());
-            HashSet<Identifier> fingers = new HashSet<Identifier>();
-            for(Identifier finger : this.chord.getFingerTable().values())
-                fingers.add(finger);
-            System.out.println(fingers.toString());
+            Identifier fileKey = new Identifier(Utils.generateHash(fileName));
+            
+            // send to backupNode
+            Identifier backupNode = this.chord.findSuccessor(fileKey);
+            //System.out.println("BACKUPNODE: " + backupNode.toString());
 
-            // Send the BACKUP message to the peers in the finger table
-            for(Identifier receiver : fingers) {
-                
-                if(counter == 0)
-                    break;
+            HashSet<Identifier> nextPeers = new HashSet<Identifier>();
+            nextPeers.add(backupNode);
 
-                if(!this.chord.getId().equals(receiver)) {
-                    System.out.println("SEND: " + receiver.toString());
-                    this.executor.execute(new BackupHandler(this.chord, receiver, fileData));
-                    counter--;
+            int i = 1;
+
+            while ((nextPeers.size() < replicationDegree) && (Utils.m >= i)) {
+
+                Identifier successor = this.chord.findSuccessor(backupNode.getNext(i));
+                // System.out.println("SUCCESSOR: " + successor.toString());
+                nextPeers.add(successor);
+                i++;
+            }
+
+            for(Identifier peer : nextPeers) {
+
+                if(peer.equals(this.chord.getId())) {                    
+                    this.storage.store(new FileData(fileData.getFileID(), fileData.getData()));
+                    fileData.addPeer(this.chord.getId());
+                }
+                else {
+                    this.executor.execute(new BackupHandler(this.chord, peer, fileData));
                 }
             }
 
-            // If the replication degree is not fulfilled, ask the peers in the finger table to execute the backup protocol
             this.executor.schedule( new Thread(()-> {
-                
-                ConcurrentHashMap.KeySetView<Identifier,Boolean> set = fileData.getPeers().keySet();
-                int repLeft = replicationDegree - fileData.getTotalPeers();
-                
-                for (Identifier sender : set) {
-                    if (repLeft == 0)
-                        break;
-                    int repDeg = repLeft < Utils.m ? repLeft : Utils.m;
-                    if(!this.chord.getId().equals(sender)) {
-                        this.executor.execute(new BackupExtraHandler( sender, fileData, repDeg, this.chord));
-                    }
-                    repLeft -= repDeg;
-                }
+                System.out.println("Replication degree: " + fileData.getTotalPeers() + " out of " + replicationDegree + " desired copies");
             }), 2000, TimeUnit.MILLISECONDS);
-        
+            
         } catch(Exception e) {
             e.printStackTrace();
             System.err.println("Could not backup file " + fileName);
@@ -161,6 +155,7 @@ public class Peer implements IRemote {
     public void restore(String fileName) throws RemoteException {
 
         String fileID = "";
+        // Identifier fileKey = new Identifier(Utils.generateHash(fileName));
 
         try {
             fileID = Utils.generateFileHash(fileName);

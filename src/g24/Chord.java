@@ -187,15 +187,15 @@ public class Chord {
 
         byte[] message;
 
-        if(body != null){
+        if(body != null) {
             System.out.println("Body Length = " + body.length);
             message = this.makeMessage(body, headerString);
         }
-        else{
+        else {
             message = this.makeHeader(headerString);
         }
 
-        // System.out.println("SEND: " + String.join(" ", headerString));
+        System.out.println("SEND: " + String.join(" ", headerString));
         // System.out.println("--------------------------------");
 
         try {
@@ -229,7 +229,7 @@ public class Chord {
 
             return short_data;
         } catch (SocketTimeoutException e){
-            System.err.println("No response from peer");
+            System.err.println("No response from peer " + new Identifier(ip, port).toString());
             return new byte[0];
         }
         catch (SocketException e) {

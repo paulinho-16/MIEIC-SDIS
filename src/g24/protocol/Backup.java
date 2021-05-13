@@ -18,10 +18,12 @@ public class Backup extends Handler {
 
     @Override
     public void run() {
-        if(!this.storage.hasFileStored(this.fileID)) {
+        
             try {
-                FileData newFileData = new FileData(this.fileID, this.data);
-                this.storage.store(newFileData);
+                if(!this.storage.hasFileStored(this.fileID)) {
+                    FileData newFileData = new FileData(this.fileID, this.data);
+                    this.storage.store(newFileData);
+                }
                 DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
                 byte[] message = ("OK").getBytes();
                 out.write(message, 0, message.length);
@@ -30,6 +32,5 @@ public class Backup extends Handler {
             } catch(Exception e) {
                 e.printStackTrace();
             }
-        }
     }
 }

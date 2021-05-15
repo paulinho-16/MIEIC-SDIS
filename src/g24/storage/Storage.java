@@ -17,6 +17,7 @@ import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.Files;
+import java.io.File;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -143,5 +144,17 @@ public class Storage {
         }
 
         return newFileData;
+    }
+
+    public boolean removeFileData(String fileID) {
+        try {
+            this.storedFiles.remove(fileID);
+            File file = new File(this.path + "/backup/file-" + fileID + ".ser");
+            return Files.deleteIfExists(file.toPath());
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 }

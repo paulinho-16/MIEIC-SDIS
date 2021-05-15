@@ -91,16 +91,11 @@ public class MessageHandler {
         // Call the respective handler
         switch(splitHeader[0]) {
             case "BACKUP":
-                System.out.println(this.chord.getId().toString() + " RECEIVED " + splitHeader[0]);
                 return new Backup(splitHeader[1], body, this.storage);
-            case "BACKUPEXTRA":
-                return new BackupExtra(splitHeader[1], Integer.parseInt(splitHeader[2]), this.storage, this.scheduler, this.chord);
             case "DELETE":
-                return new Delete(splitHeader[1]);
-            case "RESTORE": {
-                //System.out.println("RECEIVED RESTORE ");
+                return new Delete(splitHeader[1], this.storage);
+            case "RESTORE":
                 return new Restore(splitHeader[1], this.storage);
-            }
             case "ONLINE":
                 return new Online();
             case "NOTIFY":

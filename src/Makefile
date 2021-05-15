@@ -60,4 +60,7 @@ backup:
 	java g24.TestApp peer1 BACKUP test/small_file.html 3
 
 restore:
-	java g24.TestApp peer5 RESTORE medium_file.pdf
+	java g24.TestApp peer4 RESTORE small_file.html
+
+delete:
+	java g24.TestApp peer3 DELETE small_file.html

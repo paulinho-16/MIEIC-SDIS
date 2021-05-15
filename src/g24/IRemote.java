@@ -11,5 +11,7 @@ public interface IRemote extends Remote {
 
     void delete(String filename) throws RemoteException;
 
+    void reclaim(long diskSpace) throws RemoteException;
+
     String state() throws RemoteException;
 }

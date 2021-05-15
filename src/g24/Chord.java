@@ -6,6 +6,7 @@ import java.net.SocketTimeoutException;
 import java.io.DataInputStream;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSocket;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,12 +52,12 @@ public class Chord {
 
     public Identifier findSuccessor(Identifier nextNode, Identifier newNode) {
 
-        byte[] response = sendMessage(nextNode.getIp(), nextNode.getPort(), 0, null, "FINDSUCCESSOR", newNode.toString());
+        byte[] response = sendMessage(nextNode.getIp(), nextNode.getPort(), 3000, null, "FINDSUCCESSOR", newNode.toString());
 
         // Receive IP and Port from successor
         String s = new String(response);
 
-        if (s.equals("NOT_FOUND"))
+        if (s.equals("NOT_FOUND") || response.length == 0)
             return this.id;
 
         String[] splitResponse = s.split(" ");
@@ -104,7 +105,7 @@ public class Chord {
         // Receive IP and Port from successor
         String s = new String(response);
 
-        if (s.equals("NOT_FOUND"))
+        if (s.equals("NOT_FOUND") || response.length == 0)
             return new Identifier();
 
         String[] splitResponse = s.split(" ");
@@ -145,17 +146,23 @@ public class Chord {
 
     // Called periodically, refreshes finger table entries, next stores the index of
     // the next finger to fix
-    public void fix_fingers() {
+    public void fixFingers() {
 
-        // System.out.println("PERIODICALLY: FIX FINGERS");
+        try{
+            // System.out.println("PERIODICALLY: FIX FINGERS");
 
-        this.next++;
-        if (this.next > Utils.m)
-            this.next = 1;
+            this.next++;
+            if (this.next > Utils.m)
+                this.next = 1;
 
-        this.fingerTable.put(this.next, findSuccessor(this.id.getNext(this.next)));
+            this.fingerTable.put(this.next, findSuccessor(this.id.getNext(this.next)));
 
-        System.out.println("ID " +  this.id.toString() + ": " + this.fingerTable.toString() + " GETNEXT " + this.id.getNext(this.next).toString());
+            System.out.println("ID " +  this.id.toString() + ": " + this.fingerTable.toString() + " GETNEXT " + this.id.getNext(this.next).toString());
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+        
     }
 
     // Called periodically, checks whether predecessor has failed
@@ -243,7 +250,11 @@ public class Chord {
         }
         catch (SocketException e) {
             return new byte[0];
-        } catch (Exception e) {
+        } 
+        catch(SSLException e){
+            return "SHUTDOWN".getBytes();
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
 

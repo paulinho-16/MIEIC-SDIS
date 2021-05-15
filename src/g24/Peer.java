@@ -12,6 +12,7 @@ import java.util.HashSet;
 import g24.storage.*;
 import g24.handler.BackupHandler;
 import g24.handler.RestoreHandler;
+import g24.handler.DeleteHandler;
 import g24.message.*;
 
 public class Peer implements IRemote {
@@ -77,7 +78,7 @@ public class Peer implements IRemote {
             this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
             this.executor.execute(this.receiver);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fix_fingers()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
@@ -92,7 +93,7 @@ public class Peer implements IRemote {
             this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
             this.executor.execute(this.receiver);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fix_fingers()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
@@ -151,9 +152,8 @@ public class Peer implements IRemote {
     @Override
     public void restore(String filename) throws RemoteException {
 
-        String fileID = "";
-
         try {
+            String fileID = "";
             fileID = Utils.generateFileHash(filename);
         
             // If the peer has the file in its storage
@@ -189,7 +189,41 @@ public class Peer implements IRemote {
 
     @Override
     public void delete(String filename) throws RemoteException {
-        // TODO Auto-generated method stub
+
+        try {
+            String fileID = "";
+            fileID = Utils.generateFileHash(filename);
+        
+            // If the peer has the file in its storage
+            if(this.storage.hasFileStored(fileID)) {
+                this.storage.removeFileData(fileID);
+            }
+            
+            // Request other peers to delete the file
+            Identifier fileKey = new Identifier(Utils.generateHash(filename));
+            Identifier backupNode = this.chord.findSuccessor(fileKey);
+
+            HashSet<Identifier> nextPeers = new HashSet<Identifier>();
+            nextPeers.add(backupNode);
+
+            int i = 1;
+
+            while (Utils.m >= i) {
+                Identifier successor = this.chord.findSuccessor(backupNode.getNext(i));
+                nextPeers.add(successor);
+                i++;
+            }
+
+            this.executor.execute(new DeleteHandler(this.chord, nextPeers, new FileData(fileID, filename), this.storage));
+            
+        } catch (NoSuchAlgorithmException | IOException e) {
+            e.printStackTrace();
+            System.out.println("File: " + filename + "could not be deleted");
+        }
+    }
+
+    @Override
+    public void reclaim(long diskSpace) throws RemoteException {
 
     }
 

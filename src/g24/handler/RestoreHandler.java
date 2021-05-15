@@ -32,6 +32,11 @@ public class RestoreHandler implements Runnable {
             // Send a restore message and wait for a response containing the file
             byte[] response = this.chord.sendMessage(node.getIp(), node.getPort(), 1000, null, "RESTORE", this.fileData.getFileID());
 
+            // Get body from the message
+            if(response.length == 0){
+                continue;
+            }
+
             // Parse Header
             int i;  // Breakpoint index for header
             for (i = 0; i < response.length; i++) {
@@ -44,11 +49,6 @@ public class RestoreHandler implements Runnable {
                 if (response[i] == Utils.CR && response[i + 1] == Utils.LF && response[i + 2] == Utils.CR && response[i + 3] == Utils.LF) {
                     break;
                 }
-            }
-
-            // Get body from the message
-            if(response.length == 0){
-                continue;
             }
             
             String header = new String(Arrays.copyOfRange(response, 0, i)).trim();

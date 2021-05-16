@@ -26,14 +26,12 @@ import java.nio.file.StandardOpenOption;
 
 public class Storage {
     
-    private ConcurrentHashMap<String, FileData> backupFiles; // Files backed up in the chord network
     private ConcurrentHashMap<String, FileData> storedFiles; // Files stored in this peer file system
 	private String path;
     private ScheduledThreadPoolExecutor executor;
     
     public Storage(Identifier id, ScheduledThreadPoolExecutor executor) {
         this.path = "g24/output/peer" + Integer.toString(id.getId());
-        this.backupFiles = new ConcurrentHashMap<>();
         this.storedFiles = new ConcurrentHashMap<>();
     }
 
@@ -125,10 +123,6 @@ public class Storage {
     public boolean hasFileStored(String fileID) {
         return this.storedFiles.containsKey(fileID);
     }
-
-    public void addBackupFile(String fileID, FileData fileData) {
-        this.backupFiles.put(fileID, fileData);
-    }
     
     public FileData getFileData(String fileID){
         // May return null
@@ -138,11 +132,6 @@ public class Storage {
     public FileData getBackupFile(String fileName, int replicationDegree){
         FileData newFileData = new FileData(fileName, replicationDegree);
         String fileID = newFileData.getFileID();
-        
-        if(this.backupFiles.containsKey(fileID)){
-            return this.backupFiles.get(fileID);
-        }
-
         return newFileData;
     }
 

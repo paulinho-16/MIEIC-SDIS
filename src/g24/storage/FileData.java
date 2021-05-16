@@ -32,9 +32,10 @@ public class FileData implements Serializable {
         this.peers = new ConcurrentHashMap<Identifier,Boolean>();
     }
 
-    public FileData(String fileID, byte[] data) {
+    public FileData(String fileID, byte[] data, int replicationDegree) {
        this.fileID = fileID;
        this.data = data;
+       this.replicationDegree = replicationDegree;
     }
 
     public FileData(String fileID, String filename){

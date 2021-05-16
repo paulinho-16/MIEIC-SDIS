@@ -69,4 +69,8 @@ public class Utils {
 	public static void usage(String message) {
 
 	}
+
+    public static void log(String head, String body) {
+        System.out.printf("%-20s | %-40s\n", head, body);
+    }
 }

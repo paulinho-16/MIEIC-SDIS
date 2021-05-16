@@ -1,7 +1,5 @@
 package g24.protocol;
 
-import java.io.DataOutputStream;
-
 import g24.storage.FileData;
 import g24.storage.Storage;
 
@@ -9,22 +7,22 @@ public class Backup extends Handler {
     private String fileID;
     private byte[] data;
     private Storage storage;
+    private int replicationDegree;
 
-    public Backup(String fileID, byte[] data, Storage storage) {
+    public Backup(String fileID, int replicationDegree, byte[] data, Storage storage) {
         this.fileID = fileID;
         this.data = data;
         this.storage = storage;
+        this.replicationDegree = replicationDegree;
     }
 
     @Override
     public void run() {
         
             try {
-                if(!this.storage.hasFileStored(this.fileID)) {
-                    FileData newFileData = new FileData(this.fileID, this.data);
-                    this.storage.store(newFileData);
-                }
-                
+                FileData newFileData = new FileData(this.fileID, this.data, this.replicationDegree);
+                this.storage.store(newFileData);
+            
                 byte[] message = ("OK").getBytes();
                 out.write(message, 0, message.length);
                 out.flush();

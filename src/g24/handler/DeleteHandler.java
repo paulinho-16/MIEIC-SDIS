@@ -61,7 +61,6 @@ public class DeleteHandler implements Runnable {
                 if (successor.equals(backupNode))
                     break;
             }
-
         }
         catch (Exception e) {
             e.printStackTrace();

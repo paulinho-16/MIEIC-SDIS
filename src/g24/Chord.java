@@ -20,7 +20,6 @@ public class Chord {
 
         this.initFingerTable();
         Utils.log("JOIN", "ALONE");
-
     }
 
     public Chord(String ip, int port, String successorIp, int successorPort) {
@@ -127,11 +126,11 @@ public class Chord {
     public void notifySuccessor() {
 
         Identifier successor = this.id.getSuccessor();
-        sendMessage(successor.getIp(), successor.getPort(), 0, null, "NOTIFY", this.id.getIp(), Integer.toString(this.id.getPort()));
+        sendMessage(successor.getIp(), successor.getPort(), 0, null, "NOTIFY", "P", this.id.getIp(), Integer.toString(this.id.getPort()));
     }
 
     // lastPredecessor thinks it might be our predecessor
-    public void notify(Identifier lastPredecessor) {
+    public void notifyPredecessor(Identifier lastPredecessor) {
 
         Identifier predecessor = this.id.getPredecessor();
         if (predecessor.equals(new Identifier()) || lastPredecessor.between(predecessor, this.id)) {
@@ -140,21 +139,27 @@ public class Chord {
         }
     }
 
+    public void notifySuccessor(Identifier lastSuccessor) {
+        this.id.setSuccessor(lastSuccessor);
+        this.fingerTable.put(1, lastSuccessor);
+        Utils.log("NOTIFY", "NEW SUCCESSOR " + lastSuccessor.toString());
+    }
+
     // Called periodically, refreshes finger table entries, next stores the index of
     // the next finger to fix
     public void fixFingers() {
 
-        try{
+        try {
             Utils.log("PERIODICALLY", "FIX FINGERS");
             this.next++;
             if (this.next > Utils.m)
-                this.next = 1;
+                this.next = 2;
 
             Identifier finger = findSuccessor(this.id.getNext(this.next));
             this.fingerTable.put(this.next, finger);
             Utils.log("FIX FINGERS", "PUT ( " + this.next + " , " + finger.toString() + " )");
         }
-        catch(Exception e){
+        catch(Exception e) {
             e.printStackTrace();
         }
         
@@ -170,6 +175,13 @@ public class Chord {
         }
     }
 
+    // Notify the Predecessor that this peer is leaving the network, so inform your successor to the current predecessor
+    public void notifyPredecessor() {
+
+        Identifier predecessor = this.id.getPredecessor();
+        sendMessage(predecessor.getIp(), predecessor.getPort(), 0, null, "NOTIFY", "S", this.id.getSuccessor().getIp(), Integer.toString(this.id.getSuccessor().getPort()));
+    }
+
     public boolean hasFailed(Identifier node) {
         byte[] response = new byte[0];
 
@@ -177,6 +189,13 @@ public class Chord {
             response = sendMessage(node.getIp(), node.getPort(), 500, null, "ONLINE");
 
         return response.length == 0;
+    }
+
+    public void notifyLeaving() {
+        Identifier successor = this.id.getSuccessor();
+        Identifier predecessor = this.id.getPredecessor();
+        byte[] response = this.sendMessage(successor.getIp(), successor.getPort(), 500, null, "NOTIFY", "L", predecessor.getIp(), Integer.toString(predecessor.getPort())); 
+        this.notifyPredecessor();
     }
 
     public byte[] sendMessage(String ip, int port, int timeout, byte[] body, String... headerString) {

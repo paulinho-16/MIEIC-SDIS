@@ -74,13 +74,7 @@ public class Peer implements IRemote {
     public Peer(String ip, int port) {
         try {
             this.chord = new Chord(ip, port);
-            this.storage = new Storage(this.chord.getId(), this.executor);
-            this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
-            this.executor.execute(this.receiver);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
+            initialize(port);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -89,17 +83,23 @@ public class Peer implements IRemote {
     public Peer(String ip, int port, String successorIp, int successorPort) {
         try {
             this.chord = new Chord(ip, port, successorIp, successorPort);
-            this.storage = new Storage(this.chord.getId(), this.executor);
-            this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
-            this.executor.execute(this.receiver);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
+            initialize(port);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    private void initialize(int port) throws IOException{
+            this.storage = new Storage(this.chord.getId(), this.executor);
+            this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
+            this.executor.execute(this.receiver);
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> this.chord.notifyLeaving()));
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
+    }
+
 
     @Override
     public void backup(String filename, int replicationDegree) throws RemoteException {

@@ -99,7 +99,7 @@ public class MessageHandler {
             case "ONLINE":
                 return new Online();
             case "NOTIFY":
-                return new Notify(splitHeader[1], Integer.parseInt(splitHeader[2]), this.chord);
+                return new Notify(splitHeader[1], splitHeader[2], Integer.parseInt(splitHeader[3]), this.chord);
             case "FINDSUCCESSOR":
                 return new FindSuccessor(Integer.parseInt(splitHeader[1]), this.chord);
             case "GETPREDECESSOR":

@@ -1,33 +1,62 @@
 package g24.handler;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 
 import g24.Chord;
 import g24.Identifier;
-import g24.storage.FileData;
+import g24.storage.*;
+import g24.Utils;
 
 public class BackupHandler implements Runnable {
     private Chord chord;
-    private Identifier receiver;
-    private FileData fileData;
+    private Storage storage;
+    private String filename;
+    private int replicationDegree;
     
-    public BackupHandler(Chord chord, Identifier receiver, FileData fileData) {
+    public BackupHandler(Chord chord, Storage storage, String filename, int replicationDegree) {
         this.chord = chord;
-        this.receiver = receiver;
-        this.fileData = fileData;
-        
+        this.storage = storage;
+        this.filename = filename;
+        this.replicationDegree = replicationDegree;
     }
 
     @Override
     public void run() {
 		try {
-			byte[] fileBytes = this.fileData.getData();
-            byte[] response = this.chord.sendMessage(this.receiver.getIp(), this.receiver.getPort(), 1000, fileBytes, "BACKUP", this.fileData.getFileID());
-            String resp = new String(response, StandardCharsets.UTF_8);
+            FileData fileData = new FileData(this.filename, replicationDegree);
+            Identifier fileKey = new Identifier(Utils.generateHash(fileData.getFilename()));
+            Identifier backupNode = this.chord.findSuccessor(fileKey);
+            HashSet<Identifier> nextPeers = new HashSet<Identifier>();
+            
+            Identifier successor = new Identifier(backupNode.getIp(), backupNode.getPort());
+            int count = replicationDegree;
+            while (nextPeers.size() < replicationDegree) {
 
-            if (resp.equals("OK")) {
-                this.fileData.addPeer(this.receiver);
+                if(successor.equals(this.chord.getId())) {                    
+                    if(this.storage.store(new FileData(fileData.getFileID(), fileData.getData(), count))){   
+                        nextPeers.add(successor);
+                        count--;
+                    }
+                }
+                else {
+                    byte[] fileBytes = fileData.getData();
+                    byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 1000, fileBytes, "BACKUP", fileData.getFileID(), Integer.toString(count));
+                    String resp = new String(response, StandardCharsets.UTF_8);
+    
+                    if (resp.equals("OK")) {
+                        nextPeers.add(successor);
+                        count--;
+                    }
+                }
+
+                successor = new Identifier(successor.getId() + 1);
+                successor = this.chord.findSuccessor(successor);
+                if(successor.equals(backupNode))
+                    break;
             }
+
+            System.err.println("Replication degree: " + nextPeers.size() + " out of " + replicationDegree + " desired copies");
 		}
         catch (Exception e) {
 			e.printStackTrace();

@@ -13,6 +13,7 @@ import g24.storage.*;
 import g24.handler.BackupHandler;
 import g24.handler.RestoreHandler;
 import g24.handler.DeleteHandler;
+import g24.handler.ReclaimHandler;
 import g24.message.*;
 
 public class Peer implements IRemote {
@@ -74,13 +75,7 @@ public class Peer implements IRemote {
     public Peer(String ip, int port) {
         try {
             this.chord = new Chord(ip, port);
-            this.storage = new Storage(this.chord.getId(), this.executor);
-            this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
-            this.executor.execute(this.receiver);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
+            initialize(port);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -89,64 +84,27 @@ public class Peer implements IRemote {
     public Peer(String ip, int port, String successorIp, int successorPort) {
         try {
             this.chord = new Chord(ip, port, successorIp, successorPort);
-            this.storage = new Storage(this.chord.getId(), this.executor);
-            this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
-            this.executor.execute(this.receiver);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
-            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
+            initialize(port);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    private void initialize(int port) throws IOException{
+            this.storage = new Storage(this.chord.getId(), this.executor);
+            this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
+            this.executor.execute(this.receiver);
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> this.chord.notifyLeaving()));
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
+    }
+
+
     @Override
     public void backup(String filename, int replicationDegree) throws RemoteException {
-        
-        try {
-            FileData fileData = this.storage.getBackupFile(filename, replicationDegree);
-
-            this.storage.addBackupFile(fileData.getFileID(), fileData);
-            
-            Identifier fileKey = new Identifier(Utils.generateHash(fileData.getFilename()));
-            
-            // send to backupNode
-            Identifier backupNode = this.chord.findSuccessor(fileKey);
-            //System.out.println("BACKUPNODE: " + backupNode.toString());
-
-            HashSet<Identifier> nextPeers = new HashSet<Identifier>();
-            nextPeers.add(backupNode);
-
-            int i = 1;
-
-            while ((nextPeers.size() < replicationDegree) && (Utils.m >= i)) {
-
-                Identifier successor = this.chord.findSuccessor(backupNode.getNext(i));
-                // System.out.println("SUCCESSOR: " + successor.toString());
-                nextPeers.add(successor);
-                i++;
-            }
-
-            for(Identifier peer : nextPeers) {
-
-                if(peer.equals(this.chord.getId())) {                    
-                    this.storage.store(new FileData(fileData.getFileID(), fileData.getData()));
-                    fileData.addPeer(this.chord.getId());
-                }
-                else {
-                    this.executor.execute(new BackupHandler(this.chord, peer, fileData));
-                }
-            }
-
-            this.executor.schedule( new Thread(()-> {
-                System.out.println("Replication degree: " + fileData.getTotalPeers() + " out of " + replicationDegree + " desired copies");
-            }), 2000, TimeUnit.MILLISECONDS);
-            
-        } catch(Exception e) {
-            e.printStackTrace();
-            System.err.println("Could not backup file " + filename);
-        }
+        this.executor.execute(new BackupHandler(this.chord, this.storage, filename, replicationDegree));
     }
 
     @Override
@@ -158,32 +116,16 @@ public class Peer implements IRemote {
         
             // If the peer has the file in its storage
             if(this.storage.hasFileStored(fileID)) {
-                
                 FileData fileData = this.storage.read(fileID);
                 fileData.setFilename(filename);
                 this.storage.storeRestored(fileData);
             }
             else {
-                // Request the backup from other peers
-                Identifier fileKey = new Identifier(Utils.generateHash(filename));
-                Identifier backupNode = this.chord.findSuccessor(fileKey);
-
-                HashSet<Identifier> nextPeers = new HashSet<Identifier>();
-                nextPeers.add(backupNode);
-
-                int i = 1;
-
-                while (Utils.m >= i) {
-                    Identifier successor = this.chord.findSuccessor(backupNode.getNext(i));
-                    nextPeers.add(successor);
-                    i++;
-                }
-
-                this.executor.execute(new RestoreHandler(this.chord, nextPeers, new FileData(fileID, filename), this.storage));
+                this.executor.execute(new RestoreHandler(this.chord, new FileData(fileID, filename), this.storage));
             }
-        } catch (ClassNotFoundException | NoSuchAlgorithmException | IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("File: " + filename + "could not be stored");
+            System.err.println("File: " + filename + "could not be stored");
         }
     }
 
@@ -193,38 +135,16 @@ public class Peer implements IRemote {
         try {
             String fileID = "";
             fileID = Utils.generateFileHash(filename);
-        
-            // If the peer has the file in its storage
-            if(this.storage.hasFileStored(fileID)) {
-                this.storage.removeFileData(fileID);
-            }
-            
-            // Request other peers to delete the file
-            Identifier fileKey = new Identifier(Utils.generateHash(filename));
-            Identifier backupNode = this.chord.findSuccessor(fileKey);
-
-            HashSet<Identifier> nextPeers = new HashSet<Identifier>();
-            nextPeers.add(backupNode);
-
-            int i = 1;
-
-            while (Utils.m >= i) {
-                Identifier successor = this.chord.findSuccessor(backupNode.getNext(i));
-                nextPeers.add(successor);
-                i++;
-            }
-
-            this.executor.execute(new DeleteHandler(this.chord, nextPeers, new FileData(fileID, filename), this.storage));
-            
+            this.executor.execute(new DeleteHandler(this.chord, new FileData(fileID, filename), this.storage));
         } catch (NoSuchAlgorithmException | IOException e) {
             e.printStackTrace();
-            System.out.println("File: " + filename + "could not be deleted");
+            System.err.println("File: " + filename + "could not be deleted");
         }
     }
 
     @Override
     public void reclaim(long diskSpace) throws RemoteException {
-
+         this.executor.execute(new ReclaimHandler(this.chord, this.storage, diskSpace));
     }
 
     @Override

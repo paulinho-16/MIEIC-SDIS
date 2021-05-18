@@ -58,7 +58,7 @@ public class MessageHandler {
 
     // Message: <MessageType> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
     private Handler prepare(byte[] message) {
-        // BACKUP -> <MessageType> <FileId> <Body> <CRLF><CRLF>
+        // BACKUP -> <MessageType> <FileId> <ReplicationDeg> <Body> <CRLF><CRLF>
         // BACKUPEXTRA -> <MessageType> <FileId> <RepDegree> <CRLF><CRLF>
         // DELETE -> <MessageType> <FileId> <CRLF><CRLF>
         // RESTORE -> <MessageType> <FileId> <CRLF><CRLF>
@@ -91,7 +91,7 @@ public class MessageHandler {
         // Call the respective handler
         switch(splitHeader[0]) {
             case "BACKUP":
-                return new Backup(splitHeader[1], body, this.storage);
+                return new Backup(splitHeader[1], Integer.parseInt(splitHeader[2]), body, this.storage);
             case "DELETE":
                 return new Delete(splitHeader[1], this.storage);
             case "RESTORE":
@@ -99,7 +99,7 @@ public class MessageHandler {
             case "ONLINE":
                 return new Online();
             case "NOTIFY":
-                return new Notify(splitHeader[1], Integer.parseInt(splitHeader[2]), this.chord);
+                return new Notify(splitHeader[1], splitHeader[2], Integer.parseInt(splitHeader[3]), this.chord);
             case "FINDSUCCESSOR":
                 return new FindSuccessor(Integer.parseInt(splitHeader[1]), this.chord);
             case "GETPREDECESSOR":

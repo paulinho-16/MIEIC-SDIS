@@ -23,22 +23,31 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-
 public class Storage {
     
-    private ConcurrentHashMap<String, FileData> backupFiles; // Files backed up in the chord network
     private ConcurrentHashMap<String, FileData> storedFiles; // Files stored in this peer file system
 	private String path;
     private ScheduledThreadPoolExecutor executor;
+    private long occupiedSpace = 0;
+    private long totalSpace = Utils.MAX_STORAGE;
     
     public Storage(Identifier id, ScheduledThreadPoolExecutor executor) {
         this.path = "g24/output/peer" + Integer.toString(id.getId());
-        this.backupFiles = new ConcurrentHashMap<>();
         this.storedFiles = new ConcurrentHashMap<>();
     }
 
     // Used by a peer to store a file in non-volatile memory.
-    public void store(FileData file) throws IOException {
+    public boolean store(FileData file) throws IOException {
+
+        if(this.hasFileStored(file.getFileID())) {
+            this.getFileData(file.getFileID()).setReplicationDegree(file.getReplicationDegree());
+            return true;
+        }
+
+        if (file.getSize() + this.occupiedSpace > this.totalSpace) {
+            return false;
+        }
+
         String fileDir = this.path + "/backup";
         Files.createDirectories(Paths.get(fileDir));
 
@@ -65,6 +74,10 @@ public class Storage {
         channel.close();
         oos.close();
         baos.close();
+
+        this.occupiedSpace += file.getSize();
+
+        return true;
     }
 
     // Used by a peer to restore a file.
@@ -125,36 +138,46 @@ public class Storage {
     public boolean hasFileStored(String fileID) {
         return this.storedFiles.containsKey(fileID);
     }
-
-    public void addBackupFile(String fileID, FileData fileData) {
-        this.backupFiles.put(fileID, fileData);
-    }
     
     public FileData getFileData(String fileID){
         // May return null
         return this.storedFiles.get(fileID);
     }
 
-    public FileData getBackupFile(String fileName, int replicationDegree){
-        FileData newFileData = new FileData(fileName, replicationDegree);
-        String fileID = newFileData.getFileID();
-        
-        if(this.backupFiles.containsKey(fileID)){
-            return this.backupFiles.get(fileID);
-        }
-
-        return newFileData;
-    }
-
     public boolean removeFileData(String fileID) {
         try {
+            long size = this.storedFiles.get(fileID).getSize();
             this.storedFiles.remove(fileID);
             File file = new File(this.path + "/backup/file-" + fileID + ".ser");
-            return Files.deleteIfExists(file.toPath());
+            boolean deleted = Files.deleteIfExists(file.toPath());
+            if (deleted) {
+                this.occupiedSpace -= size;
+            }
+            return deleted;
         } catch(Exception e) {
             e.printStackTrace();
         }
 
         return false;
+    }
+
+    public boolean overflows() {
+        return this.occupiedSpace > this.totalSpace;
+    }
+    
+    public ConcurrentHashMap<String,FileData> getStoredFiles() {
+        return this.storedFiles;
+    }
+    
+    public long getTotalSpace() {
+        return this.totalSpace;
+    }
+
+    public long getSpaceOccupied() {
+        return this.occupiedSpace;
+    }
+        
+    public void setTotalSpace(long space){
+        this.totalSpace = space;
     }
 }

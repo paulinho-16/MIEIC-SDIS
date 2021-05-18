@@ -17,10 +17,13 @@ public class Delete extends Handler {
         try {
             byte[] message;
             
-            if(this.storage.hasFileStored(this.fileID) && this.storage.removeFileData(fileID))
-                message = ("OK").getBytes();
-            else
+            int leftToNotify = 0;
+            if(this.storage.hasFileStored(this.fileID) && (leftToNotify = this.storage.getFileData(fileID).getReplicationDegree() - 1) >= 0 && this.storage.removeFileData(fileID)){
+                message = ("OK " + leftToNotify).getBytes();
+            }
+            else{
                 message = ("NOT_FOUND").getBytes();
+            }
 
             out.write(message, 0, message.length);
             out.flush();

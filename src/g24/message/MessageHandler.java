@@ -1,13 +1,16 @@
+
 package g24.message;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.BufferedReader;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import javax.net.ssl.SSLSocket;
 
 import g24.protocol.*;
+import g24.storage.Storage;
 import g24.*;
 
 import java.util.Arrays;
@@ -16,10 +19,12 @@ public class MessageHandler {
 
     private ScheduledThreadPoolExecutor scheduler;
     private Chord chord;
+    private Storage storage;
 
-    public MessageHandler(ScheduledThreadPoolExecutor scheduler, Chord chord){
+    public MessageHandler(ScheduledThreadPoolExecutor scheduler, Chord chord, Storage storage) {
         this.scheduler = scheduler;
         this.chord = chord;
+        this.storage = storage;
     }
 
     public void handle(SSLSocket socket) throws IOException {
@@ -27,26 +32,34 @@ public class MessageHandler {
     }
     
     private Handler parse(SSLSocket socket) throws IOException {
-        
+
+        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
         DataInputStream in = new DataInputStream(socket.getInputStream());
+        byte[] response = new byte[Utils.FILE_SIZE + 200];
+        byte[] aux = new byte[Utils.FILE_SIZE + 200];
+        int bytesRead = 0;
+        int counter = 0;
+
+        int total = in.readInt();
+        while(counter != total) {
+            bytesRead = in.read(response);
+            System.arraycopy(response, 0, aux, counter, bytesRead);
+            counter += bytesRead;
+        }
+
+        byte[] result = new byte[counter];
+        System.arraycopy(aux, 0, result, 0, counter);
         
-        //byte[] data = in.readAllBytes();
-        byte[] data = new byte[1000];
-        int bytesRead = in.read(data);
-
-        byte[] short_data = new byte[bytesRead];
-        System.arraycopy(data, 0, short_data, 0, bytesRead);
-
-        Handler handler = this.prepare(short_data);
-        handler.setSocket(socket);
+        Handler handler = this.prepare(result);
+        handler.setSocket(socket, out, in);
 
         return handler;
     }
 
     // Message: <MessageType> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
     private Handler prepare(byte[] message) {
-        // BACKUP, DELETE, RESTORE, HELLO, ONLINE, FINDSUCCESSOR
-        // BACKUP -> <MessageType> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF>
+        // BACKUP -> <MessageType> <FileId> <ReplicationDeg> <Body> <CRLF><CRLF>
+        // BACKUPEXTRA -> <MessageType> <FileId> <RepDegree> <CRLF><CRLF>
         // DELETE -> <MessageType> <FileId> <CRLF><CRLF>
         // RESTORE -> <MessageType> <FileId> <CRLF><CRLF>
         // ONLINE -> <MessageType> <CRLF><CRLF>
@@ -74,19 +87,19 @@ public class MessageHandler {
 
         // System.out.println("RECEIVED: " + header);
         // System.out.println("--------------------------------");
-
+        
         // Call the respective handler
         switch(splitHeader[0]) {
             case "BACKUP":
-                return new Backup(splitHeader[1], Integer.parseInt(splitHeader[2]), Integer.parseInt(splitHeader[3]));
+                return new Backup(splitHeader[1], Integer.parseInt(splitHeader[2]), body, this.storage);
             case "DELETE":
-                return new Delete(splitHeader[1]);
-            case "RESTORE": 
-                return new Restore(splitHeader[1]);
+                return new Delete(splitHeader[1], this.storage);
+            case "RESTORE":
+                return new Restore(splitHeader[1], this.storage);
             case "ONLINE":
                 return new Online();
             case "NOTIFY":
-                return new Notify(splitHeader[1], Integer.parseInt(splitHeader[2]), this.chord);
+                return new Notify(splitHeader[1], splitHeader[2], Integer.parseInt(splitHeader[3]), this.chord);
             case "FINDSUCCESSOR":
                 return new FindSuccessor(Integer.parseInt(splitHeader[1]), this.chord);
             case "GETPREDECESSOR":

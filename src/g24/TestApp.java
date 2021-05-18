@@ -4,7 +4,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
 class TestApp {
-    public static void main(String[] args){
+    public static void main(String[] args) {
         if(args.length < 2 || args.length > 4){
             usage();
             return;
@@ -19,28 +19,35 @@ class TestApp {
 
             switch(subProtocol){
                 case "BACKUP":
-                    if(args.length != 4){
+                    if(args.length != 4) {
                        usage();
                        return;
                     }
                     stub.backup(args[2], Integer.parseInt(args[3]));
                     break;
                 case "RESTORE":
-                    if(args.length != 3){
+                    if(args.length != 3) {
                         usage();
                         return;
                     }
                     stub.restore(args[2]);
                     break;
                 case "DELETE":
-                    if(args.length != 3){
+                    if(args.length != 3) {
                         usage();
                         return;
                     }
                     stub.delete(args[2]);
                     break;
+                case "RECLAIM":
+                    if(args.length != 3) {
+                        usage();
+                        return;
+                    }
+                    stub.reclaim(Long.parseLong(args[2]));
+                    break;
                 case "STATE":
-                    if(args.length != 2){
+                    if(args.length != 2) {
                         usage();
                         return;
                     }
@@ -52,7 +59,7 @@ class TestApp {
                     System.exit(1);
             }
         
-        } catch(NumberFormatException e){
+        } catch(NumberFormatException e) {
             System.err.println("Invalid operands");
             System.exit(1);
         }
@@ -62,7 +69,7 @@ class TestApp {
         }
     }
 
-    public static void usage(){
+    public static void usage() {
         System.err.println("Usage: java TestApp <peerAp> <subProtocol> <opnd_1> <opnd_2>");
     }
 }

@@ -1,0 +1,6 @@
+
+*.out
+
+*.class
+
+src/g24/output/

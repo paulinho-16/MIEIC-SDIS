@@ -7,7 +7,7 @@ public class Online extends Handler {
     @Override
     public void run() {
         try {
-            DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
+            
             byte[] message = ("HELLO DARKNESS MY OLD FRIEND").getBytes();
             out.write(message, 0, message.length);
             out.flush();

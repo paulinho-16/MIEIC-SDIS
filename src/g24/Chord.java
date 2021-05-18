@@ -1,13 +1,10 @@
 package g24;
 
 import java.io.DataOutputStream;
-import java.net.SocketException;
 import java.io.DataInputStream;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.SSLSocket;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Chord {
@@ -22,7 +19,7 @@ public class Chord {
         this.id.setPredecessor(new Identifier());
 
         this.initFingerTable();
-
+        Utils.log("JOIN", "ALONE");
     }
 
     public Chord(String ip, int port, String successorIp, int successorPort) {
@@ -33,6 +30,7 @@ public class Chord {
         this.initFingerTable();
 
         this.join(this.id.getSuccessor());
+        Utils.log("JOIN", "SUCCESSOR " + this.id.getSuccessor().toString());
     }
 
     public void initFingerTable() {
@@ -52,12 +50,11 @@ public class Chord {
 
     public Identifier findSuccessor(Identifier nextNode, Identifier newNode) {
 
-        byte[] response = sendMessage(nextNode.getIp(), nextNode.getPort(), false, "FINDSUCCESSOR", newNode.toString());
+        byte[] response = sendMessage(nextNode.getIp(), nextNode.getPort(), 3000, null, "FINDSUCCESSOR", newNode.toString());
 
-        // Receive IP and Port from successor
         String s = new String(response);
 
-        if (s.equals("NOT_FOUND"))
+        if (s.equals("NOT_FOUND") || response.length == 0)
             return this.id;
 
         String[] splitResponse = s.split(" ");
@@ -97,33 +94,29 @@ public class Chord {
 
     public Identifier getPredecessor(Identifier node) {
 
-        if(node.equals(this.id)) return this.id.getPredecessor();
+        if(node.equals(this.id))
+            return this.id.getPredecessor();
         
-        // Send GETPREDECESSOR newNode to nextNode
-        byte[] response = sendMessage(node.getIp(), node.getPort(), false, "GETPREDECESSOR");
+        byte[] response = sendMessage(node.getIp(), node.getPort(), 0, null, "GETPREDECESSOR");
 
-        // Receive IP and Port from successor
-        String s = new String(response);
+        String[] s = new String(response).split(" ");
 
-        if (s.equals("NOT_FOUND"))
+        if (s.length < 2)
             return new Identifier();
 
-        String[] splitResponse = s.split(" ");
-
-        // response => ip port
-        return new Identifier(splitResponse[0], Integer.parseInt(splitResponse[1]));
+        return new Identifier(s[0], Integer.parseInt(s[1]));
     }
 
     // Called periodically, verifies n's immediate successor, and tells the
     // successor about n
     public void stabilize() {
-        
-        // System.out.println("PERIODICALLY: STABILIZE");
-        // Mandar mensagem ao sucessor a perguntar pelo predecessor
+
+        Utils.log("PERIODICALLY", "STABILIZE");
         Identifier x = this.getPredecessor(this.id.getSuccessor());
-        if (!x.equals(new Identifier()) && (x.between(this.id, this.id.getSuccessor()) ||  this.id.equals(this.id.getSuccessor()))) {
+        if (!x.equals(new Identifier()) && x.between(this.id, this.id.getSuccessor())) {
             this.id.setSuccessor(x);
             this.fingerTable.put(1, x);
+            Utils.log("STABILIZE", "NEW SUCCESSOR " + this.id.getSuccessor().toString());
         }
 
         this.notifySuccessor();
@@ -131,101 +124,130 @@ public class Chord {
 
     // Send NOTIFY this.id to this.id.successor
     public void notifySuccessor() {
+
         Identifier successor = this.id.getSuccessor();
-        byte[] response = sendMessage(successor.getIp(), successor.getPort(), false, "NOTIFY", this.id.getIp(),
-                Integer.toString(this.id.getPort()));
+        sendMessage(successor.getIp(), successor.getPort(), 0, null, "NOTIFY", "P", this.id.getIp(), Integer.toString(this.id.getPort()));
     }
 
     // lastPredecessor thinks it might be our predecessor
-    public void notify(Identifier lastPredecessor) {
+    public void notifyPredecessor(Identifier lastPredecessor) {
+
         Identifier predecessor = this.id.getPredecessor();
         if (predecessor.equals(new Identifier()) || lastPredecessor.between(predecessor, this.id)) {
             this.id.setPredecessor(lastPredecessor);
+            Utils.log("NOTIFY", "NEW PREDECESSOR " + lastPredecessor.toString());
         }
+    }
+
+    public void notifySuccessor(Identifier lastSuccessor) {
+        this.id.setSuccessor(lastSuccessor);
+        this.fingerTable.put(1, lastSuccessor);
+        Utils.log("NOTIFY", "NEW SUCCESSOR " + lastSuccessor.toString());
     }
 
     // Called periodically, refreshes finger table entries, next stores the index of
     // the next finger to fix
-    public void fix_fingers() {
+    public void fixFingers() {
 
-        // System.out.println("PERIODICALLY: FIX FINGERS");
+        try {
+            Utils.log("PERIODICALLY", "FIX FINGERS");
+            this.next++;
+            if (this.next > Utils.m)
+                this.next = 2;
 
-        this.next++;
-        if (this.next > Utils.m)
-            this.next = 1;
-
-        this.fingerTable.put(this.next, findSuccessor(this.id.getNext(this.next)));
-
-        System.out.println(this.fingerTable.toString());
+            Identifier finger = findSuccessor(this.id.getNext(this.next));
+            this.fingerTable.put(this.next, finger);
+            Utils.log("FIX FINGERS", "PUT ( " + this.next + " , " + finger.toString() + " )");
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // Called periodically, checks whether predecessor has failed
     public void checkPredecessor() {
 
-        // System.out.println("PERIODICALLY: CHECK PREDECESSOR");
-
+        Utils.log("PERIODICALLY", "CHECK PREDECESSOR");
         if (this.hasFailed(this.id.getPredecessor())) {
             this.id.setPredecessor(new Identifier());
-            // System.out.println("PREDECESSOR FAILED");
+            Utils.log("CHECK PREDECESSOR", "HAS FAILED");
         }
     }
 
+    // Notify the Predecessor that this peer is leaving the network, so inform your successor to the current predecessor
+    public void notifyPredecessor() {
+
+        Identifier predecessor = this.id.getPredecessor();
+        sendMessage(predecessor.getIp(), predecessor.getPort(), 0, null, "NOTIFY", "S", this.id.getSuccessor().getIp(), Integer.toString(this.id.getSuccessor().getPort()));
+    }
+
     public boolean hasFailed(Identifier node) {
-        // Send ONLINE to node with delay of 500ms
-        // System.out.println("PERIODICALLY: HAS FAILED");
         byte[] response = new byte[0];
 
         if (!node.equals(new Identifier()))
-            response = sendMessage(node.getIp(), node.getPort(), true, "ONLINE");
+            response = sendMessage(node.getIp(), node.getPort(), 500, null, "ONLINE");
 
         return response.length == 0;
     }
 
-    public byte[] sendMessage(String ip, int port, boolean timeout, String... headerString) {
+    public void notifyLeaving() {
+        Identifier successor = this.id.getSuccessor();
+        Identifier predecessor = this.id.getPredecessor();
+        byte[] response = this.sendMessage(successor.getIp(), successor.getPort(), 500, null, "NOTIFY", "L", predecessor.getIp(), Integer.toString(predecessor.getPort())); 
+        this.notifyPredecessor();
+    }
+
+    public byte[] sendMessage(String ip, int port, int timeout, byte[] body, String... headerString) {
 
         if (new Identifier(ip, port).equals(this.id))
             return new byte[0];
 
-        byte[] message = (String.join(" ", headerString) + Utils.CRLF + Utils.CRLF).getBytes();
+        byte[] message;
 
-        // System.out.println("SEND: " + String.join(" ", headerString));
-        // System.out.println("--------------------------------");
+        if(body != null) {
+            message = this.makeMessage(body, headerString);
+        }
+        else {
+            message = this.makeHeader(headerString);
+        }
 
         try {
-            // Initialize Sockets
             SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            // ArrayList<String> cypher_suites = new
-            // ArrayList<String>(Arrays.asList(factory.getSupportedCipherSuites()));
             SSLSocket socket = (SSLSocket) factory.createSocket(ip, port);
             socket.setEnabledCipherSuites(Utils.CYPHER_SUITES);
             socket.startHandshake();
 
-            if (timeout) {
-                socket.setSoTimeout(500);
+            if (timeout > 0) {
+                socket.setSoTimeout(timeout);
             }
 
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 
+            out.writeInt(message.length);
             out.write(message, 0, message.length);
             out.flush();
 
             DataInputStream in = new DataInputStream(socket.getInputStream());
-            byte[] response = new byte[1000];
-            int bytesRead = in.read(response);
-            byte[] short_data = new byte[bytesRead];
-            System.arraycopy(response, 0, short_data, 0, bytesRead);
+            byte[] response = new byte[Utils.FILE_SIZE + 200];
+            byte[] aux = new byte[Utils.FILE_SIZE + 200];
+            int bytesRead = 0;
+            int counter = 0;
 
-            // System.out.println("RECEIVED: " + new String(response));
-            // System.out.println("--------------------------------");
+            while((bytesRead = in.read(response)) != -1) {
+                System.arraycopy(response, 0, aux, counter, bytesRead);
+                counter += bytesRead;
+            }
 
             in.close();
             out.close();
             socket.close();
 
-            return short_data;
-        } catch (SocketException e) {
-            return new byte[0];
-        } catch (Exception e) {
+            byte[] result = new byte[counter];
+            System.arraycopy(aux, 0, result, 0, counter);
+            
+            return result;
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -237,6 +259,23 @@ public class Chord {
     }
 
     public void getSummary() {
-        System.out.println(this.id.summary());
+        Utils.log("PERIODICALLY", "SUMMARY");
+        Utils.log("SUMMARY", this.id.getSummary());
+        Utils.log("SUMMARY", this.fingerTable.toString());
     }
+
+    private byte[] makeMessage(byte[] body, String... headerString) {
+        byte[] header = (String.join(" ", headerString) + Utils.CRLF + Utils.CRLF).getBytes();
+        byte[] message = new byte[header.length + body.length];
+        System.arraycopy(header, 0, message, 0, header.length);
+        System.arraycopy(body, 0, message, header.length, body.length);
+
+        return message;
+    }
+
+    // Create a message with header only, no body
+    private byte[] makeHeader(String... headerString) {
+        return (String.join(" ", headerString) + Utils.CRLF + Utils.CRLF).getBytes();
+    }
+
 }

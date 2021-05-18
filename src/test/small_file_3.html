@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>SDIS 2019/2020: Project  -- Distributed Backup Service For the Internet</title>
+</head>
+<body>
+<h2>SDIS 2019/2020 - 2nd Semester<br>
+	 Project 2 -- Distributed Backup Service for the Internet<br>
+</h2>
+<hr>	
+
+<h2>1. Introduction</h2>
+
+<p>In this project you will develop a peer-to-peer distributed backup service for the Internet. The idea is to use the free disk space of the computers on the Internet for backing up files in one's own computer. As in the first project, the service must support the backup, restore and deletion of files. Also, the participants in the service must retain total control over their own storage, and therefore they may delete copies of files that they have previously stored.</p>
+
+<h2>2. Specification </h2>
+
+<p>The design of the service is up to you. E.g., you can choose to replicate full files rather than their chunks. Also, you can use some centralized server to manage the replicas, or you can use a totally distributed design, e.g using Chord to locate a file's replicas or chunks.</p>
+
+<p>The ceiling of your project's grade depends on your design choices:</p>
+<ol>
+<li>A basic solution using a single centralized server to manage the replicas, as described above, and using TCP has a ceiling of 14 (out of 20), as long as it uses thread-based concurrency. If you use no concurrency, then the ceiling will be of 12.</li>
+<li>The use of JSSE for secure communication raises the ceiling by <b>up</b> to 2 points (out of 20):
+<dl>
+<dt><code>SSLSockets</code></dt>
+<dd>The use of the basic interface provided by <code>SSLSockets/SSLServerSockets</code> will raise the ceiling of your project by 1 point. Note that using this interface may limit the level of concurrency achievable.</dd>
+<dt><a href="https://docs.oracle.com/en/java/javase/11/security/java-secure-socket-extension-jsse-reference-guide.html#GUID-8796681D-06C8-4884-ADE4-782394F6F6FB"><code>SSLEngine</code></a></dt>
+<dd>The use of this more advanced interface will raise your ceiling by 2 points. Note that this interface is also more flexible allowing you to use it together with other APIs to achieve higher concurrency.</dd>
+</dl>
+</li>
+<li>Addressing each of the following issues, will also raise your ceiling by 2 points (per issue):
+<dl>
+<dt>Scalability</dt>
+<dd>This can be at the design level, e.g. using Chord, or at the implementation level, e.g. using thread-pools and asynchronous I/O, i.e. Java NIO. (If you use Chord and Java NIO with thread-pools, your ceiling will raise by 4 points) </dd>
+<dt>Fault-tolerance</dt>
+<dd>The goal is to avoid single-points of failure. E.g. if you choose a centralized server you can replicate it and use, e.g., Paxos or just plain primary-backup. If you choose a decentralized design, you can implement Chord's fault-tolerant features.</dd>
+</dl>
+</li>
+</ol>
+
+<h2>3. Constraints</h2>
+
+<p>This project must be developed in groups of <b>3 or 4</b> students. The implementation language is Java and you can use only Java SE. <b>Exceptionally,</b> we may allow you to use other libraries. In this case, <b>you must request permission via this project's Moodle forum</b> and wait for our decision. Using code without permission, may penalize your final grade.</p>
+
+<h2><a name="submission">4. What and how to submit?</a></h2>
+
+<p>You must submit all the source code files via <a href="https://git.fe.up.pt/">FEUP's Git Service.</a> Your project shall be named  <strong><tt>sdis1920-t&lt;n&gt;g2&lt;p&gt;</tt></strong> , where <tt>&lt;n&gt;</tt> is the number of your section (turma) and <tt>&lt;p&gt;</tt> is one digit with the number of your group, e.g. <tt>sdis1920-t0g22</tt>. Your group id will be assigned to you by the staff after you fill <a href="https://docs.google.com/forms/d/e/1FAIpQLSf26P3cIKuqTO3AxPcsAMWKFeFHjd7Oytc5tdF-TtNdEuFFVw/viewform?usp=sf_link">this form.</a> In addition to the source code files, you should submit a plain ASCII file named <b><tt>README</tt></b> with instructions for compiling and running your application also via the Git project.</p>
+
+<p>Furthermore, you will have to submit a report and fill a self-evaluation form, according to instructions that we will publish on-time of the submission date, <b>May 22nd at 20:00</b>.</p>
+
+<h2>4 Demo</h2>
+
+<p>You will have to demo your project in your last lab class.</p>
+
+
+</body>
+</html>

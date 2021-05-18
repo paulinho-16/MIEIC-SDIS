@@ -20,7 +20,7 @@ public class FindSuccessor extends Handler {
         Identifier successor = chord.findSuccessor(this.node);
 
         try {
-            DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
+            
             byte[] message = (successor.getIp() + " " + successor.getPort()).getBytes();
             out.write(message, 0, message.length);
             out.flush();

@@ -47,25 +47,16 @@ public class Identifier {
         return Integer.toString(this.id);
     }
 
-    public String summary() {
+    public String getSummary() {
         return "ID: " + this.toString() + " SUCCESSOR: " + this.successor.toString() + " PREDECESSOR: " + this.predecessor.toString();
     }
 
-    public int compareTo(Identifier o1) {
-        if(o1.id == this.id)
-            return 0;
-        else if (this.id < o1.id)
-            return -1;
-        else
-            return 1;
-    }
-
     public boolean equals(Identifier o1) {
-        return this.compareTo(o1) == 0;
+        return this.id == o1.id;
     }
 
     public boolean lessThan(Identifier o1) {
-        return this.compareTo(o1) == -1;
+        return this.id < o1.id;
     }
 
     public Identifier getSuccessor() {
@@ -88,14 +79,22 @@ public class Identifier {
         
         if (o1.lessThan(o2)) {
             return o1.lessThan(this) && this.lessThan(o2);
-        } 
-        
+        }
+
         return o1.lessThan(this) || this.lessThan(o2);
-        
-        //return o1.lessThan(this) && this.lessThan(o2);
     }
 
     public Identifier getNext(int next) {
-        return new Identifier((int) (this.id + Math.pow(2, next - 1)));
+        return new Identifier((int) ((this.id + Math.pow(2, next - 1)) % ((int) Math.pow(2, Utils.m))));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return this.equals((Identifier) o);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.id;
     }
 }

@@ -68,4 +68,4 @@ delete3:
 	java g24.TestApp peer6 DELETE small_file_3.html
 
 reclaim:
-	java g24.TestApp peer3 RECLAIM 0
+	java g24.TestApp peer2 RECLAIM 5000

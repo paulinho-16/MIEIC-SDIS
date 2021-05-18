@@ -144,12 +144,6 @@ public class Storage {
         return this.storedFiles.get(fileID);
     }
 
-    public FileData getBackupFile(String fileName, int replicationDegree){
-        FileData newFileData = new FileData(fileName, replicationDegree);
-        String fileID = newFileData.getFileID();
-        return newFileData;
-    }
-
     public boolean removeFileData(String fileID) {
         try {
             long size = this.storedFiles.get(fileID).getSize();
@@ -177,6 +171,10 @@ public class Storage {
     
     public long getTotalSpace() {
         return this.totalSpace;
+    }
+
+    public long getSpaceOccupied() {
+        return this.occupiedSpace;
     }
         
     public void setTotalSpace(long space){

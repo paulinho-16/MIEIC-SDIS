@@ -24,7 +24,7 @@ public class BackupHandler implements Runnable {
     @Override
     public void run() {
 		try {
-            FileData fileData = this.storage.getBackupFile(filename, replicationDegree);
+            FileData fileData = new FileData(this.filename, replicationDegree);
             Identifier fileKey = new Identifier(Utils.generateHash(fileData.getFilename()));
             Identifier backupNode = this.chord.findSuccessor(fileKey);
             HashSet<Identifier> nextPeers = new HashSet<Identifier>();

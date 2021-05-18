@@ -24,22 +24,12 @@ public class ReclaimHandler implements Runnable {
     @Override
     public void run() {
         
-        // Traversing the backed up files using an iterator
         Iterator<Map.Entry<String, FileData>> itr = this.storage.getStoredFiles().entrySet().iterator();
 
-        // Special case of RECLAIM 0, where all files should be deleted
         try {
-            if(this.storage.getTotalSpace() == 0) {
-                while (itr.hasNext()) {
-                    if (!deleteFile(itr))
-                        return;
-                }
-            }
-            else {
-                while (this.storage.overflows() && itr.hasNext()) {
-                    if (!deleteFile(itr))
-                       return;
-                }
+            while (this.storage.overflows() && itr.hasNext()) {
+                if (!deleteFile(itr))
+                    return;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -48,7 +38,8 @@ public class ReclaimHandler implements Runnable {
     
     private boolean deleteFile(Iterator<Map.Entry<String, FileData>> itr) throws IOException {
         String fileID = itr.next().getKey();
-        FileData fileData = itr.next().getValue();
+        FileData fileData = this.storage.getFileData(fileID);
+        byte[] fileBytes = fileData.getData();
 
         int replicationDegree = fileData.getReplicationDegree();
         int count = replicationDegree;
@@ -58,11 +49,8 @@ public class ReclaimHandler implements Runnable {
         // Attempt to send the files to other peers, to maintain replication degree
         while (nextPeers.size() < replicationDegree) {
 
-            if(successor.equals(this.chord.getId())) {                    
-                continue;
-            }
-            else {
-                byte[] fileBytes = fileData.getData();
+            if(!successor.equals(this.chord.getId())) {
+
                 byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 1000, fileBytes, "BACKUP", fileData.getFileID(), Integer.toString(count));
                 String resp = new String(response, StandardCharsets.UTF_8);
 

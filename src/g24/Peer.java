@@ -125,7 +125,7 @@ public class Peer implements IRemote {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("File: " + filename + "could not be stored");
+            System.err.println("File: " + filename + "could not be stored");
         }
     }
 
@@ -138,7 +138,7 @@ public class Peer implements IRemote {
             this.executor.execute(new DeleteHandler(this.chord, new FileData(fileID, filename), this.storage));
         } catch (NoSuchAlgorithmException | IOException e) {
             e.printStackTrace();
-            System.out.println("File: " + filename + "could not be deleted");
+            System.err.println("File: " + filename + "could not be deleted");
         }
     }
 

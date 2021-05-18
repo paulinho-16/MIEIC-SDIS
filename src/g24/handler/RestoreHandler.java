@@ -36,35 +36,33 @@ public class RestoreHandler implements Runnable {
                         this.fileData.getFileID());
 
                 // Get body from the message
-                if (response.length == 0) {
-                    continue;
-                }
+                if (response.length != 0) {
+                    // Parse Header
+                    int i; // Breakpoint index for header
+                    for (i = 0; i < response.length; i++) {
 
-                // Parse Header
-                int i; // Breakpoint index for header
-                for (i = 0; i < response.length; i++) {
+                        if (i + 3 > response.length) {
+                            return;
+                        }
 
-                    if (i + 3 > response.length) {
-                        return;
+                        if (response[i] == Utils.CR && response[i + 1] == Utils.LF && response[i + 2] == Utils.CR
+                                && response[i + 3] == Utils.LF) {
+                            break;
+                        }
                     }
 
-                    if (response[i] == Utils.CR && response[i + 1] == Utils.LF && response[i + 2] == Utils.CR
-                            && response[i + 3] == Utils.LF) {
-                        break;
-                    }
-                }
+                    String header = new String(Arrays.copyOfRange(response, 0, i)).trim();
+                    byte[] body = Arrays.copyOfRange(response, i + 4, response.length);
 
-                String header = new String(Arrays.copyOfRange(response, 0, i)).trim();
-                byte[] body = Arrays.copyOfRange(response, i + 4, response.length);
-
-                if (header.equals("OK")) {
-                    this.fileData.setData(body);
-                    try {
-                        this.storage.storeRestored(this.fileData);
-                        System.out.println("Peer " + successor.toString() + " sent the file to be restored");
-                        return;
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    if (header.equals("OK")) {
+                        this.fileData.setData(body);
+                        try {
+                            this.storage.storeRestored(this.fileData);
+                            System.err.println("Peer " + successor.toString() + " sent the file to be restored");
+                            return;
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
 
@@ -74,7 +72,7 @@ public class RestoreHandler implements Runnable {
                     break;
             }
 
-            System.out.println("There are no peers with that file backed up");
+            System.err.println("There are no peers with that file backed up");
 
         } catch (Exception e) {
             e.printStackTrace();

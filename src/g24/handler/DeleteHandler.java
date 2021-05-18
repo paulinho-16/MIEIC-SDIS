@@ -35,14 +35,13 @@ public class DeleteHandler implements Runnable {
                 if(!successor.equals(this.chord.getId())){
                     byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 1000, null, "DELETE", this.fileData.getFileID());
 
-                    if(response.length == 0) {
-                        continue;
-                    }
-        
-                    String[] header = new String(response).split(" ");
+                    if(response.length != 0) {
                     
-                    if(header.length == 2 && header[0].equals("OK"))
-                        leftToNotify = Integer.parseInt(header[1]);
+                        String[] header = new String(response).split(" ");
+                        
+                        if(header.length == 2 && header[0].equals("OK"))
+                            leftToNotify = Integer.parseInt(header[1]);
+                    }
                 }
                 else {
                     String fileID = this.fileData.getFileID();
@@ -60,6 +59,11 @@ public class DeleteHandler implements Runnable {
                 if (successor.equals(backupNode))
                     break;
             }
+
+            if(leftToNotify >= 0)
+                System.err.println("There were " + leftToNotify + " peers left to notify.");
+            else
+                System.err.println("No peer was notified or possessed a copy of the file.");
         }
         catch (Exception e) {
             e.printStackTrace();

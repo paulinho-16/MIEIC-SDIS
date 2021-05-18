@@ -103,45 +103,7 @@ public class Peer implements IRemote {
 
     @Override
     public void backup(String filename, int replicationDegree) throws RemoteException {
-        
-        try {
-            FileData fileData = this.storage.getBackupFile(filename, replicationDegree);            
-            Identifier fileKey = new Identifier(Utils.generateHash(fileData.getFilename()));
-            Identifier backupNode = this.chord.findSuccessor(fileKey);
-            HashSet<Identifier> nextPeers = new HashSet<Identifier>();
-            nextPeers.add(backupNode);
-            
-            Identifier successor = new Identifier(backupNode.getId());
-            while (nextPeers.size() < replicationDegree) {
-                successor = new Identifier(successor.getId() + 1);
-                successor = this.chord.findSuccessor(successor);
-                if(successor.equals(backupNode))
-                    break;
-                nextPeers.add(successor);
-            }
-
-            int count = replicationDegree;
-            for(Identifier peer : nextPeers) {
-                
-                if(peer.equals(this.chord.getId())) {                    
-                    this.storage.store(new FileData(fileData.getFileID(), fileData.getData(), count));
-                    fileData.addPeer(this.chord.getId());
-                }
-                else {
-                    this.executor.execute(new BackupHandler(this.chord, peer, fileData, count));
-                }
-
-                count--;
-            }
-
-            this.executor.schedule( new Thread(()-> {
-                System.err.println("Replication degree: " + fileData.getTotalPeers() + " out of " + replicationDegree + " desired copies");
-            }), 2000, TimeUnit.MILLISECONDS);
-            
-        } catch(Exception e) {
-            e.printStackTrace();
-            System.err.println("Could not backup file " + filename);
-        }
+        this.executor.execute(new BackupHandler(this.chord, this.storage, filename, replicationDegree));
     }
 
     @Override

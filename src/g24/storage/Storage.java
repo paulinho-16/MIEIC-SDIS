@@ -23,12 +23,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-
 public class Storage {
     
     private ConcurrentHashMap<String, FileData> storedFiles; // Files stored in this peer file system
 	private String path;
     private ScheduledThreadPoolExecutor executor;
+    private long occupiedSpace = 0;
+    private long totalSpace = Utils.MAX_STORAGE;
     
     public Storage(Identifier id, ScheduledThreadPoolExecutor executor) {
         this.path = "g24/output/peer" + Integer.toString(id.getId());
@@ -36,7 +37,21 @@ public class Storage {
     }
 
     // Used by a peer to store a file in non-volatile memory.
-    public void store(FileData file) throws IOException {
+    public boolean store(FileData file) throws IOException {
+
+        try{
+            System.err.println("DATA: " + file.getData().length);
+            System.err.println("1: " + file.getSize());
+            System.err.println("2: " + this.occupiedSpace);
+            System.err.println("3: " + this.totalSpace);
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+
+        if (file.getSize() + this.occupiedSpace > this.totalSpace) {
+            return false;
+        }
+
         String fileDir = this.path + "/backup";
         Files.createDirectories(Paths.get(fileDir));
 
@@ -63,6 +78,10 @@ public class Storage {
         channel.close();
         oos.close();
         baos.close();
+
+        this.occupiedSpace += file.getSize();
+
+        return true;
     }
 
     // Used by a peer to restore a file.
@@ -137,9 +156,14 @@ public class Storage {
 
     public boolean removeFileData(String fileID) {
         try {
+            long size = this.storedFiles.get(fileID).getSize();
             this.storedFiles.remove(fileID);
             File file = new File(this.path + "/backup/file-" + fileID + ".ser");
-            return Files.deleteIfExists(file.toPath());
+            boolean deleted = Files.deleteIfExists(file.toPath());
+            if (deleted) {
+                this.occupiedSpace -= size;
+            }
+            return deleted;
         } catch(Exception e) {
             e.printStackTrace();
         }

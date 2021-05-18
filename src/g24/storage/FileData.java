@@ -38,7 +38,7 @@ public class FileData implements Serializable {
        this.replicationDegree = replicationDegree;
     }
 
-    public FileData(String fileID, String filename){
+    public FileData(String fileID, String filename) {
         this.filename = filename;
         this.fileID = fileID;
     }
@@ -73,16 +73,20 @@ public class FileData implements Serializable {
 
     public byte[] getData() throws IOException {
 
-        if(this.data != null){
+        if(this.data != null) {
             return this.data;
         }
 
-        if(this.getFile() != null){
+        if(this.getFile() != null) {
             byte[] data = Files.readAllBytes(this.getFile().toPath());
             return data;
         }
 
         return new byte[0];
+    }
+
+    public long getSize() {
+        return this.data.length;
     }
 
     public void setData(byte[] data) {

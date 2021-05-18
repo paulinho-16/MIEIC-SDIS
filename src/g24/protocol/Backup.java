@@ -21,9 +21,15 @@ public class Backup extends Handler {
         
             try {
                 FileData newFileData = new FileData(this.fileID, this.data, this.replicationDegree);
-                this.storage.store(newFileData);
-            
-                byte[] message = ("OK").getBytes();
+                byte[] message;
+                if(this.storage.store(newFileData)) {
+                    message = ("OK").getBytes();
+                    System.out.println("GUARDEIIIII");
+                }
+                else{
+                    message = ("NOT OK").getBytes();
+                }
+
                 out.write(message, 0, message.length);
                 out.flush();
                 out.close();

@@ -162,7 +162,6 @@ public class Chord {
         catch(Exception e) {
             e.printStackTrace();
         }
-        
     }
 
     // Called periodically, checks whether predecessor has failed

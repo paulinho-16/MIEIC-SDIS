@@ -12,7 +12,8 @@ public class Utils {
     public static final int m = 4;
     public static final byte CR = 0xD, LF = 0xA;  // ASCII codes for <CRLF>
     public static final String CRLF = "\r\n";
-    public static final int FILE_SIZE = 6*1024*1024; // File Maximum Size: 6 Mb
+    public static final int FILE_SIZE = 8*1024*1024; // File Maximum Size: 8 Mb
+    public static final long MAX_STORAGE = 2000000000l;; // Default storage size: 2 GB 
 
     public static final String[] CYPHER_SUITES =  new String[] {"TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA", "TLS_DHE_DSS_WITH_AES_128_CBC_SHA", "TLS_DH_anon_WITH_AES_128_CBC_SHA"};
 

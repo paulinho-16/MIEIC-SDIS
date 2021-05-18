@@ -29,10 +29,9 @@ public class DeleteHandler implements Runnable {
             Identifier backupNode = this.chord.findSuccessor(fileKey);
             Identifier successor = new Identifier(backupNode.getIp(), backupNode.getPort());
 
+            int leftToNotify = -1;
+            
             while (true) {
-
-                int leftToNotify = 0;
-
                 if(!successor.equals(this.chord.getId())){
                     byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 1000, null, "DELETE", this.fileData.getFileID());
 
@@ -47,7 +46,7 @@ public class DeleteHandler implements Runnable {
                 }
                 else {
                     String fileID = this.fileData.getFileID();
-                    if(this.storage.hasFileStored(fileID)){
+                    if(this.storage.hasFileStored(fileID)) {
                         leftToNotify = this.storage.getFileData(fileID).getReplicationDegree();
                         this.storage.removeFileData(fileID);
                     }

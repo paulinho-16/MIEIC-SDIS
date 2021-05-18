@@ -13,6 +13,7 @@ import g24.storage.*;
 import g24.handler.BackupHandler;
 import g24.handler.RestoreHandler;
 import g24.handler.DeleteHandler;
+import g24.handler.ReclaimHandler;
 import g24.message.*;
 
 public class Peer implements IRemote {
@@ -143,7 +144,7 @@ public class Peer implements IRemote {
 
     @Override
     public void reclaim(long diskSpace) throws RemoteException {
-
+         this.executor.execute(new ReclaimHandler(this.chord, this.storage, diskSpace));
     }
 
     @Override

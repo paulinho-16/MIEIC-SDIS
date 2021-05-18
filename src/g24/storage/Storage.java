@@ -39,13 +39,9 @@ public class Storage {
     // Used by a peer to store a file in non-volatile memory.
     public boolean store(FileData file) throws IOException {
 
-        try{
-            System.err.println("DATA: " + file.getData().length);
-            System.err.println("1: " + file.getSize());
-            System.err.println("2: " + this.occupiedSpace);
-            System.err.println("3: " + this.totalSpace);
-        } catch(Exception e){
-            e.printStackTrace();
+        if(this.hasFileStored(file.getFileID())) {
+            this.getFileData(file.getFileID()).setReplicationDegree(file.getReplicationDegree());
+            return true;
         }
 
         if (file.getSize() + this.occupiedSpace > this.totalSpace) {
@@ -169,5 +165,21 @@ public class Storage {
         }
 
         return false;
+    }
+
+    public boolean overflows() {
+        return this.occupiedSpace > this.totalSpace;
+    }
+    
+    public ConcurrentHashMap<String,FileData> getStoredFiles() {
+        return this.storedFiles;
+    }
+    
+    public long getTotalSpace() {
+        return this.totalSpace;
+    }
+        
+    public void setTotalSpace(long space){
+        this.totalSpace = space;
     }
 }

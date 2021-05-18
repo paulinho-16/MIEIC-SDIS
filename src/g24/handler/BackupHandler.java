@@ -32,26 +32,21 @@ public class BackupHandler implements Runnable {
             Identifier successor = new Identifier(backupNode.getIp(), backupNode.getPort());
             int count = replicationDegree;
             while (nextPeers.size() < replicationDegree) {
-                System.err.println("Size: " +  nextPeers.size());
 
                 if(successor.equals(this.chord.getId())) {                    
                     if(this.storage.store(new FileData(fileData.getFileID(), fileData.getData(), count))){   
                         nextPeers.add(successor);
                         count--;
-                        System.err.println("SAVED: " +  successor.getId());
                     }
                 }
                 else {
-                    System.err.println("Sending message");
                     byte[] fileBytes = fileData.getData();
                     byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 1000, fileBytes, "BACKUP", fileData.getFileID(), Integer.toString(count));
                     String resp = new String(response, StandardCharsets.UTF_8);
-                    System.err.println("Received response");
     
                     if (resp.equals("OK")) {
                         nextPeers.add(successor);
                         count--;
-                        System.err.println("SAVED: " +  successor.getId());
                     }
                 }
 

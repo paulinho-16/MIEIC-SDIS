@@ -96,4 +96,8 @@ public class FileData implements Serializable {
     public void setFilename(String filename) {
         this.filename = filename;
     }
+
+    public void setReplicationDegree(int repDegree){
+        this.replicationDegree = repDegree;
+    }
 }

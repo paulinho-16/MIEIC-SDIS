@@ -22,32 +22,32 @@ delout:
 
 killall: kill clean delout
 
-peer1:
+peer1: # 13
 	java ${PROPERTIES} g24.Peer peer1 0.0.0.0 9050
 
-peer3:
-	java ${PROPERTIES} g24.Peer peer2 0.0.0.0 9100 0.0.0.0 9150
-
-peer2:
+peer2: # 9
 	java ${PROPERTIES} g24.Peer peer3 0.0.0.0 9150 0.0.0.0 9050
 
-peer4:
+peer3: # 5
+	java ${PROPERTIES} g24.Peer peer2 0.0.0.0 9100 0.0.0.0 9150
+
+peer4: # 14
 	java ${PROPERTIES} g24.Peer peer4 0.0.0.0 9200 0.0.0.0 9100
 
-peer5:
+peer5: # 8
 	java ${PROPERTIES} g24.Peer peer5 0.0.0.0 9260 0.0.0.0 9200
 
-peer6:
+peer6: # 12
 	java ${PROPERTIES} g24.Peer peer6 0.0.0.0 9300 0.0.0.0 9050
 
 backup: 
-	java g24.TestApp peer1 BACKUP test/large_file.jpg 4
+	java g24.TestApp peer1 BACKUP test/large_file.jpg 3
 
 backup2: 
 	java g24.TestApp peer4 BACKUP test/medium_file.pdf 7
 
 backup3: 
-	java g24.TestApp peer6 BACKUP test/small_file_3.html 2
+	java g24.TestApp peer5 BACKUP test/small_file_3.html 2
 
 restore:
 	java g24.TestApp peer5 RESTORE large_file.jpg

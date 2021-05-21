@@ -7,6 +7,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.HashSet;
 import g24.storage.*;
@@ -85,6 +86,7 @@ public class Peer implements IRemote {
         try {
             this.chord = new Chord(ip, port, successorIp, successorPort);
             initialize(port);
+            this.executor.execute(new Thread(() -> this.chord.moveKeys(this.chord.getId().getSuccessor())));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -94,13 +96,29 @@ public class Peer implements IRemote {
             this.storage = new Storage(this.chord.getId(), this.executor);
             this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
             this.executor.execute(this.receiver);
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> this.chord.notifyLeaving()));
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> this.notifyLeaving()));
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkSuccessor()), 3000, 500, TimeUnit.MILLISECONDS);
     }
 
+    public void notifyLeaving() {
+        Identifier id = this.chord.getId();
+        Identifier successor = id.getSuccessor();
+        Identifier predecessor = id.getPredecessor();
+        byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 500, null, "NOTIFY", "L", predecessor.getIp(), Integer.toString(predecessor.getPort())); 
+        this.chord.notifyPredecessor();
+
+        ConcurrentHashMap<String, FileData> storedFiles = this.storage.getStoredFiles();
+
+        for(String key : storedFiles.keySet()) {
+            FileData fileData = storedFiles.get(key);
+            new BackupHandler(this.chord, this.storage, fileData, successor, fileData.getReplicationDegree()).run();
+            Utils.err("LEAVING BACKUP", key + " " + fileData.getReplicationDegree());
+        }
+    }
 
     @Override
     public void backup(String filename, int replicationDegree) throws RemoteException {

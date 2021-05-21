@@ -25,7 +25,7 @@ public class DeleteHandler implements Runnable {
 
         try {
             
-            Identifier fileKey = new Identifier(Utils.generateHash(this.fileData.getFilename()));
+            Identifier fileKey = new Identifier(Utils.generateHash(this.fileData.getFileID()));
             Identifier backupNode = this.chord.findSuccessor(fileKey);
             Identifier successor = new Identifier(backupNode.getIp(), backupNode.getPort());
 

@@ -94,6 +94,11 @@ public class Peer implements IRemote {
 
     private void initialize(int port) throws IOException{
             this.storage = new Storage(this.chord.getId(), this.executor);
+
+            // Schedule the storage updater to execute with a fixed delay of 5s and before the peer process shuts down
+            this.executor.scheduleWithFixedDelay(new AsyncStorageUpdater(this.storage), 5000, 5000, TimeUnit.MILLISECONDS);
+            Runtime.getRuntime().addShutdownHook(new Thread(new AsyncStorageUpdater(this.storage)));
+
             this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
             this.executor.execute(this.receiver);
             Runtime.getRuntime().addShutdownHook(new Thread(() -> this.notifyLeaving()));

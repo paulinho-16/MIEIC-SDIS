@@ -14,16 +14,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.Files;
 import java.io.File;
+import java.io.FileInputStream;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-public class Storage {
+public class Storage implements Serializable {
     
     private ConcurrentHashMap<String, FileData> storedFiles; // Files stored in this peer file system
 	private String path;
@@ -34,6 +36,30 @@ public class Storage {
     public Storage(Identifier id, ScheduledThreadPoolExecutor executor) {
         this.path = "g24/output/peer" + Integer.toString(id.getId());
         this.storedFiles = new ConcurrentHashMap<>();
+
+        try {
+            File storage = new File(this.path + "/storage.ser");
+            if (storage.exists()) {
+                this.deserializeStorage(storage);
+            }
+            Files.createDirectories(Paths.get(this.path));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deserializeStorage(File storage) throws IOException, ClassNotFoundException{
+        FileInputStream fi = new FileInputStream(storage);
+        ObjectInputStream oi = new ObjectInputStream(fi);
+        Storage s = (Storage) oi.readObject();
+
+        this.path = s.getPath();
+        this.storedFiles = s.getStoredFiles();
+        this.occupiedSpace = s.getSpaceOccupied();
+        this.totalSpace = s.getTotalSpace();
+
+        oi.close();
+        fi.close();
     }
 
     // Used by a peer to store a file in non-volatile memory.
@@ -179,5 +205,9 @@ public class Storage {
         
     public void setTotalSpace(long space){
         this.totalSpace = space;
+    }
+
+    public String getPath() {
+        return this.path;
     }
 }

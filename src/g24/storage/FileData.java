@@ -12,31 +12,34 @@ import g24.Utils;
 public class FileData implements Serializable {
     private String filename;
     private File file;
-    private String fileID;
-    private int replicationDegree;
+    private FileKey fileKey;
     private byte[] data;
 
     public FileData(String filename, int replicationDegree) {
         this.file = new File(filename);
         this.filename = this.file.getName();
-        this.fileID = "-1";
+        this.fileKey = new FileKey();
+
+        String fileID = "-1";
         try {
-			this.fileID = Utils.generateFileHash(this.file);
+			fileID = Utils.generateFileHash(this.file);
 		} catch (NoSuchAlgorithmException | IOException e) {
 			e.printStackTrace();
 		}
-        this.replicationDegree = replicationDegree;
+
+        this.fileKey = new FileKey(fileID, replicationDegree);
+        
     }
 
     public FileData(String fileID, byte[] data, int replicationDegree) {
-       this.fileID = fileID;
-       this.data = data;
-       this.replicationDegree = replicationDegree;
+        this.fileKey = new FileKey(fileID, replicationDegree);
+        this.data = data;
+        this.fileKey.setSize(this.data.length);
     }
 
     public FileData(String fileID, String filename) {
         this.filename = filename;
-        this.fileID = fileID;
+        this.fileKey = new FileKey(fileID, -1);
     }
 
     public String getFilename() {
@@ -44,11 +47,11 @@ public class FileData implements Serializable {
     }
 
     public String getFileID() {
-        return this.fileID;
+        return this.fileKey.getFileID();
     }
 
     public int getReplicationDegree() {
-        return this.replicationDegree;
+        return this.fileKey.getReplicationDegree();
     }
 
     public File getFile() {
@@ -70,11 +73,12 @@ public class FileData implements Serializable {
     }
 
     public long getSize() {
-        return this.data.length;
+        return this.fileKey.getSize();
     }
 
     public void setData(byte[] data) {
         this.data = data;
+        this.fileKey.setSize(this.data.length);
     }
 
     public void setFilename(String filename) {
@@ -82,6 +86,6 @@ public class FileData implements Serializable {
     }
 
     public void setReplicationDegree(int repDegree){
-        this.replicationDegree = repDegree;
+        this.fileKey.setReplicationDegree(repDegree);
     }
 }

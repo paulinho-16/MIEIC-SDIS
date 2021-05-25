@@ -76,6 +76,10 @@ public class FileData implements Serializable {
         return this.fileKey.getSize();
     }
 
+    public FileKey getFileKey(){
+        return this.fileKey;
+    }
+
     public void setData(byte[] data) {
         this.data = data;
         this.fileKey.setSize(this.data.length);

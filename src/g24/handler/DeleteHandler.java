@@ -46,7 +46,7 @@ public class DeleteHandler implements Runnable {
                 else {
                     String fileID = this.fileData.getFileID();
                     if(this.storage.hasFileStored(fileID)) {
-                        leftToNotify = this.storage.getFileData(fileID).getReplicationDegree();
+                        leftToNotify = this.storage.getFile(fileID).getReplicationDegree();
                         this.storage.removeFileData(fileID);
                     }
                 }

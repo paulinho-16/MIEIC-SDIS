@@ -27,7 +27,7 @@ import java.nio.file.StandardOpenOption;
 
 public class Storage implements Serializable {
     
-    private ConcurrentHashMap<String, FileData> storedFiles; // Files stored in this peer file system
+    private ConcurrentHashMap<String, FileKey> storedFiles; // Files stored in this peer file system
 	private String path;
     private ScheduledThreadPoolExecutor executor;
     private long occupiedSpace = 0;
@@ -66,7 +66,7 @@ public class Storage implements Serializable {
     public boolean store(FileData file) throws IOException {
 
         if(this.hasFileStored(file.getFileID())) {
-            this.getFileData(file.getFileID()).setReplicationDegree(file.getReplicationDegree());
+            this.getFile(file.getFileID()).setReplicationDegree(file.getReplicationDegree());
             return true;
         }
 
@@ -95,7 +95,7 @@ public class Storage implements Serializable {
         while (!operation.isDone()) {
         }
 
-        this.storedFiles.put(file.getFileID(), file);
+        this.storedFiles.put(file.getFileID(), file.getFileKey());
 
         channel.close();
         oos.close();
@@ -156,6 +156,8 @@ public class Storage implements Serializable {
         ObjectInputStream ois = new ObjectInputStream(bais);
 
         FileData data = (FileData) ois.readObject();
+        FileKey fileKey = this.getFile(fileID);
+        data.setReplicationDegree(fileKey.getReplicationDegree());
 
         return data;
     }
@@ -165,7 +167,7 @@ public class Storage implements Serializable {
         return this.storedFiles.containsKey(fileID);
     }
     
-    public FileData getFileData(String fileID){
+    public FileKey getFile(String fileID){
         // May return null
         return this.storedFiles.get(fileID);
     }
@@ -191,7 +193,7 @@ public class Storage implements Serializable {
         return this.occupiedSpace > this.totalSpace;
     }
     
-    public ConcurrentHashMap<String,FileData> getStoredFiles() {
+    public ConcurrentHashMap<String,FileKey> getStoredFiles() {
         return this.storedFiles;
     }
     

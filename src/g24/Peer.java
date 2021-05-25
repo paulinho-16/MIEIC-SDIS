@@ -116,12 +116,17 @@ public class Peer implements IRemote {
         byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 500, null, "NOTIFY", "L", predecessor.getIp(), Integer.toString(predecessor.getPort())); 
         this.chord.notifyPredecessor();
 
-        ConcurrentHashMap<String, FileData> storedFiles = this.storage.getStoredFiles();
+        ConcurrentHashMap<String, FileKey> storedFiles = this.storage.getStoredFiles();
 
         for(String key : storedFiles.keySet()) {
-            FileData fileData = storedFiles.get(key);
-            new BackupHandler(this.chord, this.storage, fileData, successor, fileData.getReplicationDegree()).run();
-            Utils.err("LEAVING BACKUP", key + " " + fileData.getReplicationDegree());
+            FileData fileData;
+            try {
+                fileData = this.storage.read(key);
+                new BackupHandler(this.chord, this.storage, fileData, successor, fileData.getReplicationDegree()).run();
+                Utils.err("LEAVING BACKUP", key + " " + fileData.getReplicationDegree());
+            } catch (ClassNotFoundException | IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

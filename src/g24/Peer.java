@@ -9,7 +9,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.HashSet;
 import g24.storage.*;
 import g24.handler.BackupHandler;
 import g24.handler.RestoreHandler;
@@ -113,7 +112,7 @@ public class Peer implements IRemote {
         Identifier id = this.chord.getId();
         Identifier successor = id.getSuccessor();
         Identifier predecessor = id.getPredecessor();
-        byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 500, null, "NOTIFY", "L", predecessor.getIp(), Integer.toString(predecessor.getPort())); 
+        this.chord.sendMessage(successor.getIp(), successor.getPort(), 500, null, "NOTIFY", "L", predecessor.getIp(), Integer.toString(predecessor.getPort())); 
         this.chord.notifyPredecessor();
 
         ConcurrentHashMap<String, FileKey> storedFiles = this.storage.getStoredFiles();
@@ -177,7 +176,40 @@ public class Peer implements IRemote {
 
     @Override
     public String state() throws RemoteException {
-        // TODO Auto-generated method stub
-        return null;
+        StringBuilder state = new StringBuilder();
+        ConcurrentHashMap<String, FileKey> files = this.storage.getStoredFiles();
+
+        state.append("\nStorage Summary:");
+
+        state.append("\n\tTotal Space: ");
+        state.append(this.storage.getTotalSpace()/1000.0);
+        state.append(" Kb");
+        state.append("\n\tOccupied Space: ");
+        state.append(this.storage.getSpaceOccupied()/1000.0);
+        state.append(" Kb");
+        state.append("\n\tFree Space: ");
+        state.append((this.storage.getTotalSpace() - this.storage.getSpaceOccupied())/1000.0);
+        state.append(" Kb");
+
+        state.append("\n-----------------------------------------");
+        if (files.size() == 0) {
+            state.append("\nNo Files Backed Up");
+        }
+        else {
+            state.append("\nFiles Backed Up (" + files.size() + " files):\n");
+            for (String fileId : files.keySet()) {
+                FileKey key = files.get(fileId);
+
+                state.append("\n\tId: ");
+                state.append(key.getFileID());
+                state.append("\n\tReplication Degree: ");
+                state.append(key.getReplicationDegree());
+                state.append("\n\tSize:");
+                state.append(key.getSize());
+                state.append("\n");
+            }
+        }
+        
+        return state.toString();
     }
 }

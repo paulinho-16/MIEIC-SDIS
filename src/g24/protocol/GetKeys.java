@@ -30,21 +30,22 @@ public class GetKeys extends Handler {
             out.close();
 
             for (String fileId : this.storage.getStoredFiles().keySet()) {
-                FileData fileData = this.storage.read(fileId);
+                FileData fileData = this.storage.read(fileId); 
                 Identifier fileKey = new Identifier(Utils.generateHash(fileId));
                 Identifier predecessor = this.chord.getId().getPredecessor();
-                if (fileKey.between(predecessor, this.node) || fileKey.equals(this.node) || fileKey.equals(predecessor)) {
+                if (fileKey.between(predecessor, this.node) || fileKey.lessThan(this.node) || fileKey.equals(this.node) || fileKey.equals(predecessor)) {
 
                     byte[] fileBytes = fileData.getData();
                     int replicationDegree = fileData.getReplicationDegree();
-                    byte[] response = this.chord.sendMessage(this.node.getIp(), this.node.getPort(), 1000, fileBytes,
+                    this.chord.sendMessage(this.node.getIp(), this.node.getPort(), 1000, fileBytes,
                             "BACKUP", fileData.getFileID(), Integer.toString(replicationDegree));
 
-                    if(replicationDegree > 1){
-                        fileData.setReplicationDegree(fileData.getReplicationDegree() - 1);
+                    if(replicationDegree > 1) {
+                        fileData.setReplicationDegree(replicationDegree - 1);
+                        this.storage.getFile(fileId).setReplicationDegree(replicationDegree - 1);
                         new BackupHandler(this.chord, this.storage, fileData, this.chord.getId().getSuccessor(), fileData.getReplicationDegree() - 1).run();
                     }
-                    else{
+                    else {
                         this.storage.removeFileData(fileId);
                     }
                 }

@@ -167,7 +167,7 @@ public class Storage implements Serializable {
         return this.storedFiles.containsKey(fileID);
     }
     
-    public FileKey getFile(String fileID){
+    public FileKey getFile(String fileID) {
         // May return null
         return this.storedFiles.get(fileID);
     }

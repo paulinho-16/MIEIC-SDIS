@@ -15,6 +15,7 @@ public class BackupHandler implements Runnable {
     private int replicationDegree;
     private FileData fileData;
     private Identifier backupNode;
+    private Identifier startingNode;
     private boolean leaving;
     
     public BackupHandler(Chord chord, Storage storage, String filename, int replicationDegree) {
@@ -27,6 +28,7 @@ public class BackupHandler implements Runnable {
             this.fileData = new FileData(this.filename, replicationDegree);
             Identifier fileKey = new Identifier(Utils.generateHash(fileData.getFileID()));
             this.backupNode = this.chord.findSuccessor(fileKey);
+            this.startingNode = this.backupNode;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -38,9 +40,15 @@ public class BackupHandler implements Runnable {
         this.chord = chord;
         this.storage = storage;
         this.fileData = fileData;
-        this.backupNode = backupNode;
-        this.replicationDegree = replicationDegree;
-        this.leaving = true;
+        try {
+            this.backupNode = backupNode;
+            Identifier fileKey = new Identifier(Utils.generateHash(fileData.getFileID()));
+            this.startingNode = this.chord.findSuccessor(fileKey);
+            this.replicationDegree = replicationDegree;
+            this.leaving = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -72,12 +80,12 @@ public class BackupHandler implements Runnable {
 
                 successor = new Identifier(successor.getId() + 1);
                 successor = this.chord.findSuccessor(successor);
-                if(successor.equals(this.backupNode))
+                if(successor.equals(this.backupNode) || (this.leaving && successor.equals(this.startingNode)))
                     break;
             }
             
             // Send delete
-            if(count == 0 && !successor.equals(this.chord.getId()) && !(this.replicationDegree > 0 && successor.equals(this.backupNode))){
+            if(count == 0 && !successor.equals(this.chord.getId()) && !(this.replicationDegree > 0 && successor.equals(this.backupNode))) {
                 byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 1000, null, "DELETE", this.fileData.getFileID());
             }
 

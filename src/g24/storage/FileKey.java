@@ -7,13 +7,13 @@ public class FileKey implements Serializable {
     private int replicationDegree;
     private int size;
 
-    public FileKey(){
+    public FileKey() {
         this.fileID = "-1";
         this.replicationDegree = -1;
         this.size = 0;
     }
 
-    public FileKey(String fileID, int replicationDegree){
+    public FileKey(String fileID, int replicationDegree) {
         this.fileID = fileID;
         this.replicationDegree = replicationDegree;
         this.size = 0;
@@ -31,11 +31,11 @@ public class FileKey implements Serializable {
         this.fileID = fileID;
     }
 
-    public String getFileID(){
+    public String getFileID() {
         return this.fileID;
     }
 
-    public int getReplicationDegree(){
+    public int getReplicationDegree() {
         return this.replicationDegree;
     }
 

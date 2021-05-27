@@ -15,6 +15,7 @@ import g24.handler.RestoreHandler;
 import g24.handler.DeleteHandler;
 import g24.handler.ReclaimHandler;
 import g24.message.*;
+import g24.Utils;
 
 public class Peer implements IRemote {
 
@@ -46,13 +47,14 @@ public class Peer implements IRemote {
         } catch (RemoteException e) {
             registry = LocateRegistry.createRegistry(1099);
         } catch (Exception e) {
-            Utils.usage(e.getMessage());
+            System.err.println(e.getMessage());
             System.exit(1);
         }
 
         // Parsed Arguments
         String peerAp = args[0];
         String peerIp = args[1];
+        Utils.peerAp = peerAp;
         int peerPort = Integer.parseInt(args[2]);
         String successorIP;
         int successorPort;
@@ -69,7 +71,7 @@ public class Peer implements IRemote {
         IRemote remote = (IRemote) UnicastRemoteObject.exportObject(peer, 0);
         registry.rebind(peerAp, remote);
 
-        System.out.println("REGISTRY :: Peer registered with name " + peerAp);
+        Utils.out("REGISTRY", "Peer registered with name " + peerAp);
     }
 
     public Peer(String ip, int port) {
@@ -122,7 +124,7 @@ public class Peer implements IRemote {
             try {
                 fileData = this.storage.read(key);
                 new BackupHandler(this.chord, this.storage, fileData, successor, fileData.getReplicationDegree()).run();
-                Utils.err("LEAVING BACKUP", key + " " + fileData.getReplicationDegree());
+                Utils.out("LEAVING BACKUP", key + " " + fileData.getReplicationDegree());
             } catch (ClassNotFoundException | IOException e) {
                 e.printStackTrace();
             }
@@ -140,7 +142,6 @@ public class Peer implements IRemote {
         try {
             String fileID = "";
             fileID = Utils.generateFileHash(filename);
-        
             // If the peer has the file in its storage
             if(this.storage.hasFileStored(fileID)) {
                 FileData fileData = this.storage.read(fileID);
@@ -151,7 +152,6 @@ public class Peer implements IRemote {
                 this.executor.execute(new RestoreHandler(this.chord, new FileData(fileID, filename), this.storage));
             }
         } catch (Exception e) {
-            e.printStackTrace();
             System.err.println("File: " + filename + "could not be stored");
         }
     }
@@ -164,7 +164,6 @@ public class Peer implements IRemote {
             fileID = Utils.generateFileHash(filename);
             this.executor.execute(new DeleteHandler(this.chord, new FileData(fileID, filename), this.storage));
         } catch (NoSuchAlgorithmException | IOException e) {
-            e.printStackTrace();
             System.err.println("File: " + filename + "could not be deleted");
         }
     }

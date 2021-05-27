@@ -107,6 +107,8 @@ public class MessageHandler {
                 return new GetPredecessor(this.chord);
             case "GETKEYS":
                 return new GetKeys(this.chord, this.storage, splitHeader[1], Integer.parseInt(splitHeader[2]));
+            case "HASFILE":
+                return new HasFile(this.storage, splitHeader[1]);
             default:
                 System.err.println("Message is not recognized by the parser");
                 break;

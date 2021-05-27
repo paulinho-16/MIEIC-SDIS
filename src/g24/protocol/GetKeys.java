@@ -32,9 +32,27 @@ public class GetKeys extends Handler {
             for (String fileId : this.storage.getStoredFiles().keySet()) {
                 FileData fileData = this.storage.read(fileId); 
                 Identifier fileKey = new Identifier(Utils.generateHash(fileId));
-                Identifier predecessor = this.chord.getId().getPredecessor();
-                if (fileKey.between(predecessor, this.node) || fileKey.lessThan(this.node) || fileKey.equals(this.node) || fileKey.equals(predecessor)) {
+                Identifier predecessor = this.chord.getId().getPredecessor();   
+                boolean toSend = false;
 
+                if(fileKey.between(predecessor, this.node) || fileKey.equals(this.node)) {
+                    toSend = true;
+                }
+                else {
+                    Utils.out("GETKEYS","ASKING predecessor " + fileKey.toString());
+                    byte[] response = this.chord.sendMessage(predecessor.getIp(), predecessor.getPort(), 1000, null,
+                            "HASFILE", fileData.getFileID());
+
+                    String s = new String(response);
+                    if (s.equals("OK")) {
+                        toSend = true;
+                    }
+                }
+
+                Utils.out("GETKEYS", "FILE " + fileKey.toString());
+
+                if(toSend) {
+                    Utils.out("GETKEYS", "TO SEND FILE " + fileKey.toString());
                     byte[] fileBytes = fileData.getData();
                     int replicationDegree = fileData.getReplicationDegree();
                     this.chord.sendMessage(this.node.getIp(), this.node.getPort(), 1000, fileBytes,

@@ -6,6 +6,9 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+
 
 public class Utils {
 
@@ -14,6 +17,7 @@ public class Utils {
     public static final String CRLF = "\r\n";
     public static final int FILE_SIZE = 8*1024*1024; // File Maximum Size: 8 Mb
     public static final long MAX_STORAGE = 2000000000l;; // Default storage size: 2 GB 
+    public static String peerAp;
 
     public static final String[] CYPHER_SUITES =  new String[] {"TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA", "TLS_DHE_DSS_WITH_AES_128_CBC_SHA", "TLS_DH_anon_WITH_AES_128_CBC_SHA"};
 
@@ -67,15 +71,25 @@ public class Utils {
 		return hexString.toString();
 	}
 
-	public static void usage(String message) {
+    public static synchronized void log(String head, String body) {
+        try {
+            File oFile = new File(Utils.peerAp + ".log");
+            if (!oFile.exists()) {
+                oFile.createNewFile();
+            }
+            if (oFile.canWrite()) {
+                BufferedWriter oWriter = new BufferedWriter(new FileWriter(Utils.peerAp + ".log", true));
+                oWriter.write(String.format("%-20s | %-40s\n", head, body));
+                oWriter.close();
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-	}
-
-    public static void log(String head, String body) {
+    public static void out(String head, String body) {
         System.out.printf("%-20s | %-40s\n", head, body);
     }
 
-    public static void err(String head, String body) {
-        System.err.printf("%-20s | %-40s\n", head, body);
-    }
 }

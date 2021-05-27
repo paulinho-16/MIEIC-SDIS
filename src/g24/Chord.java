@@ -223,7 +223,7 @@ public class Chord {
                 this.successorList.put(i, successor);
             } catch(Exception e){
                 i--;
-                Utils.err("CAUGHT LEAVING", successor.toString());
+                Utils.out("CAUGHT LEAVING", successor.toString());
             }
         }
         Utils.log("SUCCESSOR LIST", this.successorList.toString());
@@ -280,7 +280,7 @@ public class Chord {
             return result;
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Utils.out("ERROR", e.getMessage());
         }
 
         return new byte[0];

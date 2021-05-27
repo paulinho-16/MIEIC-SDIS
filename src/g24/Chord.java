@@ -12,6 +12,7 @@ public class Chord {
     private Identifier id;
     private int next = 1;
     private ConcurrentHashMap<Integer, Identifier> fingerTable;
+    private ConcurrentHashMap<Integer, Identifier> successorList;
 
     public Chord(String ip, int port) {
         this.id = new Identifier(ip, port);
@@ -19,6 +20,7 @@ public class Chord {
         this.id.setPredecessor(new Identifier());
 
         this.initFingerTable();
+        this.initSuccessorList();
         Utils.log("JOIN", "ALONE");
     }
 
@@ -28,6 +30,7 @@ public class Chord {
         this.id.setPredecessor(new Identifier());
 
         this.initFingerTable();
+        this.initSuccessorList();
 
         this.join(this.id.getSuccessor());
         Utils.log("JOIN", "SUCCESSOR " + this.id.getSuccessor().toString());
@@ -41,11 +44,27 @@ public class Chord {
         this.fingerTable.put(1, this.id.getSuccessor());
     }
 
+    public void initSuccessorList() {
+        this.successorList = new ConcurrentHashMap<>();
+        for (int i = 0; i < Utils.m - 1; i++) {
+            this.successorList.put(i, new Identifier());
+        }
+    }
+
     // Join a Chord ring containing node knownNode
     public void join(Identifier knownNode) {
         Identifier x = this.findSuccessor(knownNode, this.id);
         this.id.setSuccessor(x);
         this.fingerTable.put(1, x);
+    }
+
+    public void moveKeys(Identifier successor) {
+        byte[] response = sendMessage(successor.getIp(), successor.getPort(), 3000, null, "GETKEYS", this.id.getIp(), Integer.toString(this.id.getPort()));
+
+        String s = new String(response);
+        if (s.equals("OK")) {
+            
+        }
     }
 
     public Identifier findSuccessor(Identifier nextNode, Identifier newNode) {
@@ -107,8 +126,7 @@ public class Chord {
         return new Identifier(s[0], Integer.parseInt(s[1]));
     }
 
-    // Called periodically, verifies n's immediate successor, and tells the
-    // successor about n
+    // Called periodically, verifies n's immediate successor, and tells the successor about n
     public void stabilize() {
 
         Utils.log("PERIODICALLY", "STABILIZE");
@@ -190,11 +208,25 @@ public class Chord {
         return response.length == 0;
     }
 
-    public void notifyLeaving() {
+    public void checkSuccessor() {
+
+        Utils.log("PERIODICALLY", "CHECK SUCCESSOR");
+        if (!this.id.getSuccessor().equals(this.id) && this.hasFailed(this.id.getSuccessor())) {
+            this.id.setSuccessor(this.successorList.get(0));
+            Utils.log("CHECK SUCCESSOR", "HAS FAILED");
+        }
+
         Identifier successor = this.id.getSuccessor();
-        Identifier predecessor = this.id.getPredecessor();
-        byte[] response = this.sendMessage(successor.getIp(), successor.getPort(), 500, null, "NOTIFY", "L", predecessor.getIp(), Integer.toString(predecessor.getPort())); 
-        this.notifyPredecessor();
+        for (int i = 0; i < Utils.m - 1; i++) {
+            try{
+                successor = findSuccessor(new Identifier(successor.getId() + 1));
+                this.successorList.put(i, successor);
+            } catch(Exception e){
+                i--;
+                Utils.out("CAUGHT LEAVING", successor.toString());
+            }
+        }
+        Utils.log("SUCCESSOR LIST", this.successorList.toString());
     }
 
     public byte[] sendMessage(String ip, int port, int timeout, byte[] body, String... headerString) {
@@ -248,7 +280,7 @@ public class Chord {
             return result;
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Utils.out("ERROR", e.getMessage());
         }
 
         return new byte[0];

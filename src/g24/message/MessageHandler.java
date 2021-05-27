@@ -66,6 +66,7 @@ public class MessageHandler {
         // NOTIFY -> <MessageType> <NewNode> <CRLF><CRLF>
         // FINDSUCCESSOR -> <MessageType> <NewNode> <CRLF><CRLF>
         // GETPREDECESSOR -> <MessageType> <CRLF><CRLF>
+        // GETKEYS -> <MessageType> <CRLF><CRLF>
 
         // Parse Header
         int i;  // Breakpoint index for header
@@ -104,12 +105,16 @@ public class MessageHandler {
                 return new FindSuccessor(Integer.parseInt(splitHeader[1]), this.chord);
             case "GETPREDECESSOR":
                 return new GetPredecessor(this.chord);
+            case "GETKEYS":
+                return new GetKeys(this.chord, this.storage, splitHeader[1], Integer.parseInt(splitHeader[2]));
+            case "HASFILE":
+                return new HasFile(this.storage, splitHeader[1]);
             default:
                 System.err.println("Message is not recognized by the parser");
                 break;
         }
 
-        System.out.println("Parse failed");
+        System.err.println("Parse failed");
 
         return null;
     }

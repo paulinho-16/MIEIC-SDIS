@@ -37,7 +37,7 @@ public class MessageReceiver implements Runnable {
                 newSocket.setEnabledCipherSuites(Utils.CYPHER_SUITES); 
                 this.handler.handle(newSocket);
             } catch(Exception e) {
-                e.printStackTrace();
+                Utils.out("ERROR", e.getMessage());
             }
         }
     }

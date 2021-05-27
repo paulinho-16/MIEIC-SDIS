@@ -18,7 +18,7 @@ public class Delete extends Handler {
             byte[] message;
             
             int leftToNotify = 0;
-            if(this.storage.hasFileStored(this.fileID) && (leftToNotify = this.storage.getFileData(fileID).getReplicationDegree() - 1) >= 0 && this.storage.removeFileData(fileID)){
+            if(this.storage.hasFileStored(this.fileID) && (leftToNotify = this.storage.getFile(fileID).getReplicationDegree() - 1) >= 0 && this.storage.removeFileData(fileID)){
                 message = ("OK " + leftToNotify).getBytes();
             }
             else{

@@ -24,7 +24,7 @@ public class ReclaimHandler implements Runnable {
     @Override
     public void run() {
         
-        Iterator<Map.Entry<String, FileData>> itr = this.storage.getStoredFiles().entrySet().iterator();
+        Iterator<Map.Entry<String, FileKey>> itr = this.storage.getStoredFiles().entrySet().iterator();
 
         try {
             while (this.storage.overflows() && itr.hasNext()) {
@@ -36,9 +36,9 @@ public class ReclaimHandler implements Runnable {
         }
     }
     
-    private boolean deleteFile(Iterator<Map.Entry<String, FileData>> itr) throws IOException {
+    private boolean deleteFile(Iterator<Map.Entry<String, FileKey>> itr) throws IOException, ClassNotFoundException {
         String fileID = itr.next().getKey();
-        FileData fileData = this.storage.getFileData(fileID);
+        FileData fileData = this.storage.read(fileID);
         byte[] fileBytes = fileData.getData();
 
         int replicationDegree = fileData.getReplicationDegree();

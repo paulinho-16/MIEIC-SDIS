@@ -7,14 +7,15 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.HashSet;
 import g24.storage.*;
 import g24.handler.BackupHandler;
 import g24.handler.RestoreHandler;
 import g24.handler.DeleteHandler;
 import g24.handler.ReclaimHandler;
 import g24.message.*;
+import g24.Utils;
 
 public class Peer implements IRemote {
 
@@ -46,13 +47,14 @@ public class Peer implements IRemote {
         } catch (RemoteException e) {
             registry = LocateRegistry.createRegistry(1099);
         } catch (Exception e) {
-            Utils.usage(e.getMessage());
+            System.err.println(e.getMessage());
             System.exit(1);
         }
 
         // Parsed Arguments
         String peerAp = args[0];
         String peerIp = args[1];
+        Utils.peerAp = peerAp;
         int peerPort = Integer.parseInt(args[2]);
         String successorIP;
         int successorPort;
@@ -69,7 +71,7 @@ public class Peer implements IRemote {
         IRemote remote = (IRemote) UnicastRemoteObject.exportObject(peer, 0);
         registry.rebind(peerAp, remote);
 
-        System.out.println("REGISTRY :: Peer registered with name " + peerAp);
+        Utils.out("REGISTRY", "Peer registered with name " + peerAp);
     }
 
     public Peer(String ip, int port) {
@@ -85,6 +87,7 @@ public class Peer implements IRemote {
         try {
             this.chord = new Chord(ip, port, successorIp, successorPort);
             initialize(port);
+            this.executor.execute(new Thread(() -> this.chord.moveKeys(this.chord.getId().getSuccessor())));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -92,15 +95,41 @@ public class Peer implements IRemote {
 
     private void initialize(int port) throws IOException{
             this.storage = new Storage(this.chord.getId(), this.executor);
+
+            // Schedule the storage updater to execute with a fixed delay of 5s and before the peer process shuts down
+            this.executor.scheduleWithFixedDelay(new AsyncStorageUpdater(this.storage), 5000, 5000, TimeUnit.MILLISECONDS);
+            Runtime.getRuntime().addShutdownHook(new Thread(new AsyncStorageUpdater(this.storage)));
+
             this.receiver = new MessageReceiver(port, this.executor, this.chord, this.storage);
             this.executor.execute(this.receiver);
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> this.chord.notifyLeaving()));
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> this.notifyLeaving()));
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkPredecessor()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.fixFingers()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.getSummary()), 1000, 500, TimeUnit.MILLISECONDS);
             this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.stabilize()), 1000, 500, TimeUnit.MILLISECONDS);
+            this.executor.scheduleWithFixedDelay(new Thread(() -> this.chord.checkSuccessor()), 3000, 500, TimeUnit.MILLISECONDS);
     }
 
+    public void notifyLeaving() {
+        Identifier id = this.chord.getId();
+        Identifier successor = id.getSuccessor();
+        Identifier predecessor = id.getPredecessor();
+        this.chord.sendMessage(successor.getIp(), successor.getPort(), 500, null, "NOTIFY", "L", predecessor.getIp(), Integer.toString(predecessor.getPort())); 
+        this.chord.notifyPredecessor();
+
+        ConcurrentHashMap<String, FileKey> storedFiles = this.storage.getStoredFiles();
+
+        for(String key : storedFiles.keySet()) {
+            FileData fileData;
+            try {
+                fileData = this.storage.read(key);
+                new BackupHandler(this.chord, this.storage, fileData, successor, fileData.getReplicationDegree()).run();
+                Utils.out("LEAVING BACKUP", key + " " + fileData.getReplicationDegree());
+            } catch (ClassNotFoundException | IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     @Override
     public void backup(String filename, int replicationDegree) throws RemoteException {
@@ -113,7 +142,6 @@ public class Peer implements IRemote {
         try {
             String fileID = "";
             fileID = Utils.generateFileHash(filename);
-        
             // If the peer has the file in its storage
             if(this.storage.hasFileStored(fileID)) {
                 FileData fileData = this.storage.read(fileID);
@@ -124,7 +152,6 @@ public class Peer implements IRemote {
                 this.executor.execute(new RestoreHandler(this.chord, new FileData(fileID, filename), this.storage));
             }
         } catch (Exception e) {
-            e.printStackTrace();
             System.err.println("File: " + filename + "could not be stored");
         }
     }
@@ -137,7 +164,6 @@ public class Peer implements IRemote {
             fileID = Utils.generateFileHash(filename);
             this.executor.execute(new DeleteHandler(this.chord, new FileData(fileID, filename), this.storage));
         } catch (NoSuchAlgorithmException | IOException e) {
-            e.printStackTrace();
             System.err.println("File: " + filename + "could not be deleted");
         }
     }
@@ -149,7 +175,40 @@ public class Peer implements IRemote {
 
     @Override
     public String state() throws RemoteException {
-        // TODO Auto-generated method stub
-        return null;
+        StringBuilder state = new StringBuilder();
+        ConcurrentHashMap<String, FileKey> files = this.storage.getStoredFiles();
+
+        state.append("\nStorage Summary:");
+
+        state.append("\n\tTotal Space: ");
+        state.append(this.storage.getTotalSpace()/1000.0);
+        state.append(" Kb");
+        state.append("\n\tOccupied Space: ");
+        state.append(this.storage.getSpaceOccupied()/1000.0);
+        state.append(" Kb");
+        state.append("\n\tFree Space: ");
+        state.append((this.storage.getTotalSpace() - this.storage.getSpaceOccupied())/1000.0);
+        state.append(" Kb");
+
+        state.append("\n-----------------------------------------");
+        if (files.size() == 0) {
+            state.append("\nNo Files Backed Up");
+        }
+        else {
+            state.append("\nFiles Backed Up (" + files.size() + " files):\n");
+            for (String fileId : files.keySet()) {
+                FileKey key = files.get(fileId);
+
+                state.append("\n\tId: ");
+                state.append(key.getFileID());
+                state.append("\n\tReplication Degree: ");
+                state.append(key.getReplicationDegree());
+                state.append("\n\tSize:");
+                state.append(key.getSize());
+                state.append("\n");
+            }
+        }
+        
+        return state.toString();
     }
 }

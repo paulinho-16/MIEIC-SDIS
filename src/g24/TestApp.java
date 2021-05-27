@@ -44,7 +44,7 @@ class TestApp {
                         usage();
                         return;
                     }
-                    stub.reclaim(Long.parseLong(args[2]));
+                    stub.reclaim(Long.parseLong(args[2]) * 1000);
                     break;
                 case "STATE":
                     if(args.length != 2) {

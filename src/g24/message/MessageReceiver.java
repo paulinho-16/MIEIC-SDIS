@@ -13,7 +13,6 @@ public class MessageReceiver implements Runnable {
     private SSLServerSocket socket;
     private MessageHandler handler;
     private Chord chord;
-    //private String[] cypher_suites;
 
     public MessageReceiver(int port, ScheduledThreadPoolExecutor scheduler, Chord chord, Storage storage) throws IOException {
 
@@ -24,8 +23,6 @@ public class MessageReceiver implements Runnable {
         SSLServerSocketFactory ssf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
         this.socket = (SSLServerSocket) ssf.createServerSocket(port);
         this.socket.setEnabledCipherSuites(Utils.CYPHER_SUITES);
-        // ArrayList<String> cypher_suites = new ArrayList<String>(Arrays.asList(ssf.getSupportedCipherSuites()));
-        // this.cypher_suites = cypher_suites.toArray(new String[cypher_suites.size()]);
     }
 
     @Override
@@ -33,8 +30,8 @@ public class MessageReceiver implements Runnable {
         while(true) {
             try {
                 SSLSocket newSocket = (SSLSocket) this.socket.accept();
-                newSocket.startHandshake();
                 newSocket.setEnabledCipherSuites(Utils.CYPHER_SUITES); 
+                newSocket.startHandshake();
                 this.handler.handle(newSocket);
             } catch(Exception e) {
                 Utils.out("ERROR", e.getMessage());

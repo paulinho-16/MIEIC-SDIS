@@ -57,8 +57,8 @@ public class RestoreHandler implements Runnable {
                     if (header.equals("OK")) {
                         this.fileData.setData(body);
                         try {
+                            Utils.log("RESTORE", "Peer " + successor.toString() + " sent the file to be restored");
                             this.storage.storeRestored(this.fileData);
-                            System.err.println("Peer " + successor.toString() + " sent the file to be restored");
                             return;
                         } catch (IOException e) {
                             e.printStackTrace();

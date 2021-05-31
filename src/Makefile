@@ -43,8 +43,11 @@ peer6: # 12
 backup: 
 	java g24.TestApp peer1 BACKUP test/large_file.jpg 3
 
+backup1: 
+	java g24.TestApp peer1 BACKUP test/large_file.jpg 1
+
 backup2: 
-	java g24.TestApp peer4 BACKUP test/medium_file.pdf 7
+	java g24.TestApp peer4 BACKUP test/medium_file.pdf 2
 
 backup3: 
 	java g24.TestApp peer5 BACKUP test/small_file_3.html 4
@@ -52,11 +55,15 @@ backup3:
 restore:
 	java g24.TestApp peer5 RESTORE large_file.jpg
 
+restore1:
+	java g24.TestApp peer1 RESTORE large_file.jpg
+
 restore2:
 	java g24.TestApp peer3 RESTORE medium_file.pdf
 
 restore3:
 	java g24.TestApp peer2 RESTORE small_file_3.html
+
 
 delete:
 	java g24.TestApp peer4 DELETE large_file.jpg
@@ -69,6 +76,18 @@ delete3:
 
 reclaim:
 	java g24.TestApp peer2 RECLAIM 30
+
+reclaim2:
+	java g24.TestApp peer6 RECLAIM 100
+
+reclaim3:
+	java g24.TestApp peer6 RECLAIM 0
+
+reclaim4:
+	java g24.TestApp peer2 RECLAIM 0
+
+reclaim5:
+	java g24.TestApp peer5 RECLAIM 0
 
 state1:
 	java g24.TestApp peer1 STATE

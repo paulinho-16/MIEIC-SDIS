@@ -2,10 +2,8 @@
 package g24.message;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.BufferedReader;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import javax.net.ssl.SSLSocket;
 
@@ -58,15 +56,6 @@ public class MessageHandler {
 
     // Message: <MessageType> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> <CRLF><CRLF><Body>
     private Handler prepare(byte[] message) {
-        // BACKUP -> <MessageType> <FileId> <ReplicationDeg> <Body> <CRLF><CRLF>
-        // BACKUPEXTRA -> <MessageType> <FileId> <RepDegree> <CRLF><CRLF>
-        // DELETE -> <MessageType> <FileId> <CRLF><CRLF>
-        // RESTORE -> <MessageType> <FileId> <CRLF><CRLF>
-        // ONLINE -> <MessageType> <CRLF><CRLF>
-        // NOTIFY -> <MessageType> <NewNode> <CRLF><CRLF>
-        // FINDSUCCESSOR -> <MessageType> <NewNode> <CRLF><CRLF>
-        // GETPREDECESSOR -> <MessageType> <CRLF><CRLF>
-        // GETKEYS -> <MessageType> <CRLF><CRLF>
 
         // Parse Header
         int i;  // Breakpoint index for header

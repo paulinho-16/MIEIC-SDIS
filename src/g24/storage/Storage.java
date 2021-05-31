@@ -103,6 +103,8 @@ public class Storage implements Serializable {
 
         this.occupiedSpace += file.getSize();
 
+        Utils.out("BACKUP", "Saved file " + file.getFileID());
+
         return true;
     }
 
@@ -131,6 +133,8 @@ public class Storage implements Serializable {
         }
 
         channel.close();
+
+        Utils.out("RESTORE", "Restored file " + file.getFilename());
     }
 
     // Used by a peer to read a stored file from memory.
@@ -180,6 +184,7 @@ public class Storage implements Serializable {
             boolean deleted = Files.deleteIfExists(file.toPath());
             if (deleted) {
                 this.occupiedSpace -= size;
+                Utils.out("DELETE", "Deleted file " + fileID);
             }
             return deleted;
         } catch(Exception e) {

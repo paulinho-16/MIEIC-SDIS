@@ -15,7 +15,6 @@ import g24.handler.RestoreHandler;
 import g24.handler.DeleteHandler;
 import g24.handler.ReclaimHandler;
 import g24.message.*;
-import g24.Utils;
 
 public class Peer implements IRemote {
 

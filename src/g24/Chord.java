@@ -59,6 +59,7 @@ public class Chord {
     }
 
     public void moveKeys(Identifier successor) {
+        Utils.log("MOVE KEYS", "GET KEYS");
         byte[] response = sendMessage(successor.getIp(), successor.getPort(), 3000, null, "GETKEYS", this.id.getIp(), Integer.toString(this.id.getPort()));
 
         String s = new String(response);

@@ -2,6 +2,9 @@ package g24.protocol;
 
 import g24.storage.FileData;
 import g24.storage.Storage;
+
+import java.nio.charset.StandardCharsets;
+
 import g24.Chord;
 import g24.Identifier;
 import g24.Utils;
@@ -55,15 +58,16 @@ public class GetKeys extends Handler {
                     Utils.out("GETKEYS", "TO SEND FILE " + fileKey.toString());
                     byte[] fileBytes = fileData.getData();
                     int replicationDegree = fileData.getReplicationDegree();
-                    this.chord.sendMessage(this.node.getIp(), this.node.getPort(), 1000, fileBytes,
+                    byte[] response = this.chord.sendMessage(this.node.getIp(), this.node.getPort(), 1000, fileBytes,
                             "BACKUP", fileData.getFileID(), Integer.toString(replicationDegree));
+                    String resp = new String(response, StandardCharsets.UTF_8);
 
-                    if(replicationDegree > 1) {
+                    if(replicationDegree > 1 && resp.equals("OK")) {
                         fileData.setReplicationDegree(replicationDegree - 1);
                         this.storage.getFile(fileId).setReplicationDegree(replicationDegree - 1);
                         new BackupHandler(this.chord, this.storage, fileData, this.chord.getId().getSuccessor(), fileData.getReplicationDegree() - 1).run();
                     }
-                    else {
+                    else if (resp.equals("OK")) {
                         this.storage.removeFileData(fileId);
                     }
                 }

@@ -66,7 +66,7 @@ public class ReclaimHandler implements Runnable {
                 break;
         }
 
-        System.err.println("Replication degree: " + nextPeers.size() + " out of " + replicationDegree + " desired copies");
+        System.out.println("Replication degree: " + nextPeers.size() + " out of " + replicationDegree + " desired copies");
 
         return this.storage.removeFileData(fileID);
     }

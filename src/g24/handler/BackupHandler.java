@@ -89,7 +89,7 @@ public class BackupHandler implements Runnable {
                 byte[] response = this.chord.sendMessage(successor.getIp(), successor.getPort(), 1000, null, "DELETE", this.fileData.getFileID());
             }
 
-            System.err.println("Replication degree: " + nextPeers.size() + " out of " + this.replicationDegree + " desired copies");
+            System.out.println("Replication degree: " + nextPeers.size() + " out of " + this.replicationDegree + " desired copies");
 		}
         catch (Exception e) {
 			e.printStackTrace();

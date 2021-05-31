@@ -61,9 +61,9 @@ public class DeleteHandler implements Runnable {
             }
 
             if(leftToNotify >= 0)
-                System.err.println("There were " + leftToNotify + " peers left to notify.");
+                System.out.println("There were " + leftToNotify + " peers left to notify.");
             else
-                System.err.println("No peer was notified or possessed a copy of the file.");
+                System.out.println("No peer was notified or possessed a copy of the file.");
         }
         catch (Exception e) {
             e.printStackTrace();

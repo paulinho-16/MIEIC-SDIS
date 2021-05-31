@@ -72,7 +72,7 @@ public class RestoreHandler implements Runnable {
                     break;
             }
 
-            System.err.println("There are no peers with that file backed up");
+            System.out.println("There are no peers with that file backed up");
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>SDIS 2019/2020: Project 1 -- Distributed Backup Service</title>
+</head>
+<body>
+<h2>SDIS 2019/2020 - 2nd Semester<br>
+	 Project 1 -- Distributed Backup Service<br>
+</h2>
+<hr>	
+
+<h2>1. Introduction</h2>
+
+<p>In this project you will develop a distributed backup service for a local area network (LAN). The idea is to use the free disk space of the computers in a LAN for backing up files in other computers in the same LAN. The service is provided by servers in an environment that is assumed cooperative (rather than hostile). Nevertheless, each server retains control over its own disks and, if needed, may reclaim the space it made available for backing up other computers' files. </p>
+
+<p>Because no server is special, we call these servers "peers". (This kind of implementation is often called serverless service.) <b>Each peer is identified by an integer</b>, which is unique among the set of peers in the system and never changes.</p>
+
+<h3>1.1 Assumptions</h3>
+
+<p>The assumptions made regarding the environment and the system are essential when designing a distributed application. In this section, we try to make explicit all the assumptions that you can make, when devising your solution. Some assumptions stem from the environment in which the service is expected to operate on and are easy to understand. Other assumptions are not very realistic, but they are made to simplify your solution or its test.</p>
+
+<p>We assume that the system is composed of a set of computers interconnected by a local area network. The service is provided by a set of peers, <b>possibly more than one per computer</b>, that cooperate to provide the backup service. Each peer manages local disk storage where it may store files, or parts thereof.</p>
+
+<p>We assume that the network may loose or duplicate messages, but that network failures are transient. I.e., if the sender keeps retransmitting a message, it will eventually reach its destination.</p>
+
+<p>Likewise peers may fail by crashing, but they may also recover. Failure of a peer may lead to the loss of files, not only the ones originally stored in that computer but also those it has backed up for other peers. We assume that the loss of data by a peer is an event that is statistically independent of the loss of data by any other peer, whether or not it is on the same computer. <b>Furthermore, we assume that any files with metadata stored on a peer are never lost on a peer's crash.</b> </p>
+
+<p>Finally, we assume a local area network administered by a single entity in a friendly environment. All participants behave according to the protocol specified and do not attempt to take advantage of the service or to attack it. Furthermore, participants do not modify or delete, either intentionally or accidentally, the backed up data.</p>
+
+<h3>1.2 Document organization</h3>
+
+<p>This specification has several sections:</p>
+
+<dl>
+	<dt><a href="#service">Section 2: Service </a></dt><dd>Describes the service and summarizes the interface it must provide for a testing client.</dd>
+	<dt><a href="#protocol">Section 3: Protocol</a></dt><dd>Specifies the protocol that must be implemented by the peers to provide the serverless backup service.
+	</dd>	
+	<dt><a href="#client_interface">Section 4: Client Interface</a></dt><dd>Specifies the interface a peer must provide to a client of the backup service.</dd>
+	<dt><a href="#implementation">Section 5: Implementation Aspects</a></dt><dd>Provides some information relevant, including requirements, for peer implementation.</dd>
+	<dt><a href="#testing_client_app">Section 6: Testing Client Application</a></dt><dd>Describes the testing client application that you must develop to test the service. It specifies how this test client should be invoked from the command line.</dd>
+	<dt><a href="#final_considerations">Section 7: Final Considerations</a></dt><dd>Provides some information regarding the development, the submission and the evaluation of your work.</dd>
+	<dt><a href="#interoperability">Appendix A: Interoperability</a></dt><dd>Provides some information that you should have in mind so that your implementation is interoperable with that of other groups, especially if you implement some of enhancements to the peer-to-peer protocol described in <a href="#protocol">Section 3</a>.</dd>
+</dl>
+
+<p>Essentially, a peer has to implement two interfaces/protocols:</p>
+<dl>
+	<dt><a href="#protocol">Peer-to-peer Protocol</a></dt><dd> which should be executed by the peers to provide the serverless backup service.
+	</dd>	
+	<dt><a href="#client_interface">The Client Interface</a></dt><dd>which must be provided to a client of the backup service.</dd>
+</dl>
+
+<h2><a name="service">2. Service</a></h2>
+
+<!--p>The backup service is provided by a set of servers. Because no server is special, we call these servers "peers". (This kind of implementation is often called serverless service.) <b>Each peer is identified by an integer</b>, which is unique among the set of peers in the system.</p-->
+
+<h3>2.1 Service Description</h3>
+
+<p>The purpose of the service is to <b>backup</b> files by replicating their content in multiple peers. Each file has a "home" peer, which has the original copy of the file. The backup service generates an identifier for each file it backs up. This identifier is obtained by applying SHA256, a cryptographic hash function, to some <b>bit string</b>. Each implementation can choose the bit string used to generate a file identifier, i.e. as input to SHA256, as long as that choice generates file identifiers that are unique with very high probability, i.e. that bit string should be unique. Furthermore, because the backup service is not aware of versions of a file, the bit string used to generate a file identifier should include data and or metadata that ensures that a modified file has a different fileId. For example, you can combine the file metadata (file name, date modified, owner ...)   and/or file data to generate that bit string.</p>
+
+<p>The backup service <b>splits each file in chunks and then backs up each chunk independently</b>, rather than creating multiple files that are a copy  of the file to backup. Each chunk is identified by the pair <b>(fileId, chunkNo)</b>.  The maximum size of each chunks 64KByte (where K stands for 1000). All chunks of a file, except possibly the last one, have the maximum size. The size of the last chunk is always shorter than that size. <b>If the file size is a multiple of the chunk size, the last chunk has size 0.</b> A peer need not store all chunks of a file, or even any chunk of a file. The recovery of each chunk is also performed independently of the recovery of other chunks of a file. That is, to <b>recover</b> a file, the service will have to execute a recovery protocol per chunk as described below.</p>
+
+<p>In order to tolerate the unavailability of peers, the service backs up each chunk on a given number of peers. The number of peers backing up a chunk is that chunk's <b>replication degree</b>. Each file is backed up with a <b>desired replication degree</b>: the service should try to replicate all the chunks of a file with the desired replication degree. However, at any time instant, the actual replication degree of a chunk may be different from the one that is desired.</p>
+
+<p>In addition to the basic functionality for <b>backing up</b> and <b>recovering</b> a file, the backup service must provide the functionality for <b>reclaiming</b> disk space on peers. <b>First,</b> as a requirement of the service, each peer retains total control on the use of its local disk space. If a peer's administrator decides to reduce the amount of local disk space used by the backup service, the latter may have to free disk space used for storing chunks. This will decrease the replication degree of the chunk, which may drop below the desired value. In that case, the service will try to create new copies of the chunk so as to keep the desired replication degree. <b>Second,</b> a file may be <b>deleted</b>. In this case, the backup service should delete all the chunks of that file. Actually, deletion of the chunks of a file, may happen not only when the file is deleted on its file system, but also when it is modified, because, for the backup system, it will be a different file.</p>
+
+<p>As described, except for the initiator peer, the backup service knows only about chunks of the backed up files, which are identified by the fileId. It knows nothing about the file systems where the backed up files are kept. Of course to be of practical use, the mapping between the fileId kept by the backup system and the name of that file (and possibly its file system) must survive a failure of the original file system. This problem can be solved in different ways, but you are not required to do it for this project. For this project, and to keep it doable by the submission deadline, we will assume that this mapping is never lost.</p>
+
+<h3>2.2 Service Interface</h3>
+
+<p>The service must provide an interface to allow a client to:</p>
+<dl>
+<dt><b>Backup a file</b></dt>
+<dt><b>Restore a file</b></dt>
+<dt><b>Delete a file</b></dt>
+<dt><b>Manage local service storage</b></dt>
+<dt><b>Retrieve local service state information</b></dt>
+</dl>
+<p>This interface is particularly useful for testing purposes.</p>
+
+<p><a href="#client_interface">In Section 4</a> we provide more details regarding this interface.</p>
+
+<a name="protocol"><h2>3. Peer Protocol</h2></a>
+
+<p>In this section we describe the protocol that is executed by the peers to provide the backup service.</p>
+
+<p>The protocol used by the backup service comprises several smaller <b>subprotocols</b>, which are used for specific tasks, and that can be run concurrently:</p>
+<ol>
+	<li>chunk backup</li>
+	<li>chunk restore</li>
+	<li>file deletion</li>
+	<li>space reclaiming</li>
+</ol>
+
+<p>Many of these subprotocols are initiated by a peer that we call the <strong>initiator-peer</strong>, to distinguish it from the other peers. The role of initiator-peer can be played by any peer, depending on the particular instance of the subprotocol.</p>
+
+<p>All subprotocols use a <b>multicast channel, the control channel (MC),</b> that is used for control messages. All peers must subscribe the MC channel. Some subprotocols use also one of two multicast data channels, MDB and MDR, which are used to backup and restore file chunk data, respectively.</p>
+
+<p><strong>IMP</strong> The "name" of each multicast channel consists of the IP multicast address and port, and should be configurable via a pair of command line arguments of the peer program.  The "name" of the channels should be provided in the following order MC, MDB, MDR. These arguments must follow immediately the  first three command line arguments, which are the <b>protocol version</b>, the <b>peer id</b> and the <b>service access point</b> (check <a href="#implementation">Section 5.2</a> for the meaning of the latter), respectively.</p>
+
+<h3>3.1 Message Format and Field Encoding</h3>
+
+<p>In this subsection, we define a generic format for all messages. After that, in the the subsections with the description of the different subprotocols, we specifiy the format of each message of the respective subprotocol by specifying the fields that must be present. When a field is used in a message, it must be encoded as described herein.</p>
+
+<p>The generic message is composed by two parts: a header and the body. The header contains essentially control information, whereas the body is used for the data and is used in some messages only.</p>
+
+<h4>Header</h4>
+
+<p>The header consists of a sequence of ASCII lines, sequences of ASCII codes <b>terminated with the sequence <code>'0xD''0xA'</code></b>, which we denote <code>&lt;CRLF&gt;</code> because these are the ASCII codes of the CR and LF chars respectively. Each header line is a sequence of fields, sequences of ASCII codes, separated by spaces, the ASCII char <code>' '</code>. <b>Note that:</b>
+<ol>
+<li>there may be more than one space between fields;</li>
+<li>there may be zero or more spaces after the last field in a line;</li>
+<li>the header always terminates with an empty header line. I.e. the <code>&lt;CRLF&gt;</code> of the last header line is followed <b>immediately by another <code>&lt;CRLF&gt;</code> without any character, white spaces included, in between.</b></li>
+</ol>
+</p>
+
+<p>In the version described herein, the header has only the following non-empty single line:</p>
+
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><code>
+&lt;Version&gt; &lt;MessageType&gt; &lt;SenderId&gt; &lt;FileId&gt; &lt;ChunkNo&gt; &lt;ReplicationDeg&gt; &lt;CRLF&gt;
+</code>
+</div>
+
+<p>Some of these fields may not be used by some messages, but all fields that appear in a message must appear in the relative order specified above.</p>
+
+<p>Next we describe the meaning of each field and its format.</p>
+
+<dl>
+    <dt>&lt;Version&gt;</dt>
+	<dd>This is the version of the protocol. It is a three ASCII char sequence with the format <code>&lt;n&gt;'.'&lt;m&gt;</code>, where <code>&lt;n&gt;</code> and <code>&lt;m&gt;</code> are the ASCII codes of digits. For example, version 1.0, the one specified in this document, should be encoded as the char sequence <code>'1''.''0'</code>.</dd>	
+	<dt>&lt;MessageType&gt;</dt>
+	<dd>This is the type of the message. Each subprotocol specifies its own message types. This field determines the format of the message and what actions its receivers should perform. This is encoded as a variable length sequence of ASCII characters. </dd>
+	<dt>&lt;SenderId&gt;</dt>
+	<dd>This is the id of the peer that has sent the message. This field is useful in many subprotocols. This is encoded as a variable length sequence of ASCII digits. </dd>
+	<dt>&lt;FileId&gt;</dt>
+	<dd>This is the file identifier in the backup service. As stated above, it is supposed to be obtained by using the SHA256 cryptographic hash function. As its name indicates its length is 256 bit, i.e. 32 bytes, and should be encoded as a 64 ASCII character sequence. The encoding is as follows: each byte of the hash value is encoded by the two ASCII characters corresponding to the hexadecimal representation of that byte. E.g., a byte with value <code>0xB2</code> should be represented by the two char sequence <code>'B''2'</code> (or <code>'b''2'</code>, it does not matter). The entire hash is represented in big-endian order, i.e. from the MSB (byte 31) to the LSB (byte 0).</dd>
+	<dt>&lt;ChunkNo&gt;</dt>
+	<dd>This field together with the FileId specifies a chunk in the file. The chunk numbers are integers and should be assigned sequentially starting at 0. It is encoded as a sequence of ASCII characters corresponding to the decimal representation of that number, with the most significant digit first. The length of this field is variable, but should not be larger than 6 chars. Therefore, each file can have at most one million chunks. Given that each chunk is 64 KByte, this limits the size of the files to backup to 64 GByte. </dd>
+	<dt>&lt;ReplicationDeg&gt;</dt>
+	<dd>This field contains the desired replication degree of the chunk. This is a digit, thus allowing a replication degree of up to 9. It takes one byte, which is the ASCII code of that digit.</dd>
+</dl>
+
+<h4>Body</h4>
+
+<p>When present, the body contains the data of a file chunk. The length of the body is variable. As stated above, if it is smaller than the maximum chunk size, 64KByte, it is the last chunk in a file. The protocol does not interpret the contents of the <code>Body</code>. For the protocol its value is just a byte sequence. You <b>must not</b> encode it, e.g. like is done with the <code>FileId</code> header field.</p>
+
+<h3>3.2 Chunk backup subprotocol</h3>
+
+<p>To backup a chunk, the initiator-peer sends to the <b>MDB multicast data channel</b> a message whose body is the contents of that chunk. This message includes also the sender and the chunk ids  and the desired replication degree:</p>
+
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><code>
+&lt;Version&gt; PUTCHUNK &lt;SenderId&gt; &lt;FileId&gt; &lt;ChunkNo&gt; &lt;ReplicationDeg&gt; &lt;CRLF&gt;&lt;CRLF&gt;&lt;Body&gt;
+</code>
+</div>
+
+<p>A peer that stores the chunk upon receiving the PUTCHUNK message, should reply by sending <b>on the multicast control channel (MC)</b> a confirmation message  with the following format:</p>
+
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><code>
+&lt;Version&gt; STORED &lt;SenderId&gt; &lt;FileId&gt; &lt;ChunkNo&gt; &lt;CRLF&gt;&lt;CRLF&gt;
+</code>
+</div>
+
+<p>after a random delay uniformly distributed between 0 and 400 ms. <strong>Food for thought:</strong> Why use a random delay? (Remember CSMA/CD.)</p>
+
+<p><i><strong>IMP:</strong> A peer must never store the chunks of its own files.</i></p>
+
+<p>This message is used to ensure that the chunk is backed up with the desired replication degree as follows. The initiator-peer collects the confirmation messages during a time interval of <i>one second</i>. If the number of confirmation messages it received up to the end of that interval is lower than the desired replication degree, it retransmits the backup message <b>on the MDB channel</b>, and doubles the time interval for receiving confirmation messages. This procedure is repeated up to a maximum number of five times, <i>i.e. the initiator will send at most 5 <code>PUTCHUNK</code> messages per chunk.</i></p>
+
+<p><strong>Hint:</strong> Because UDP is not reliable, a peer that has stored a chunk must reply with a STORED message to every PUTCHUNK message it receives. Furthermore, the initiator-peer needs to keep track of which peers have responded. </p>
+
+<p>A peer should also count the number of confirmation messages for each of the chunks it has stored and keep that count in non-volatile memory. This information can be useful if the peer runs out of disk space: in that event, the peer may try to free some space by evicting chunks whose actual replication degree is higher than the desired replication degree.</p>
+
+<p><strong>Enhancement:</strong> This scheme can deplete the backup space rather rapidly, and cause too much activity on the nodes once that space is full. Can you think of an alternative scheme that ensures the desired replication degree, avoids these problems, and, nevertheless, can interoperate with peers that execute the chunk backup protocol described above?</p> 
+
+<h3>3.3 Chunk restore protocol</h3>
+
+<p>This protocol uses the same multicast control channel (MC) as the backup protocol, but uses a different multicast channel for data, the multicast data recovery channel (MDR).</p>
+
+<p>To recover a chunk, the initiator-peer shall send a message with the following format to the MC:</p>
+
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><code>
+&lt;Version&gt; GETCHUNK &lt;SenderId&gt; &lt;FileId&gt; &lt;ChunkNo&gt; &lt;CRLF&gt;&lt;CRLF&gt;
+</code>
+</div>
+
+<p>Upon receiving this message, a peer that has a copy of the specified chunk shall send it in the body of a CHUNK message via the MDR channel:</p>
+
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><code>
+&lt;Version&gt; CHUNK &lt;SenderId&gt; &lt;FileId&gt; &lt;ChunkNo&gt; &lt;CRLF&gt;&lt;CRLF&gt;&lt;Body&gt;
+</code>
+</div>
+
+<p>To avoid flooding the host with CHUNK messages, each peer shall wait for a random time uniformly distributed between 0 and 400 ms, before sending the CHUNK message. If it receives a CHUNK message before that time expires, it will not send the CHUNK message.</p>
+
+<p><strong>Enhancement:</strong> If chunks are large, this protocol may not be desirable: only one peer needs to receive the chunk, but we are using a multicast channel for sending the chunk. Can you think of a change to the protocol that would eliminate this problem, and yet interoperate with non-initiator peers that implement the protocol described in this section? Your enhancement <b>must use TCP</b> to get full credit.</p>
+
+<h3>3.4 File deletion subprotocol</h3>
+
+<p>In order to allow the deletion all chunks of a file from the backup service, the protocol provides the following message, that should be sent on the MC:</p>
+
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><code>
+&lt;Version&gt; DELETE &lt;SenderId&gt; &lt;FileId&gt; &lt;CRLF&gt;&lt;CRLF&gt;
+</code>
+</div>
+
+<p>Upon receiving this message, a peer should remove from its backing store all chunks belonging to the specified file.</p>
+
+<p>This message does not elicit any response message. An implementation may send this message as many times as it is deemed necessary to ensure that all space used by chunks of the deleted file are deleted in spite of the loss of some messages.</p>
+
+<p><strong>Enhancement:</strong> If a peer that backs up some chunks of the file is not running at the time the initiator peer sends a DELETE message for that file, the space used by these chunks will never be reclaimed. Can you think of a change to the protocol, possibly including additional messages, that would allow to reclaim storage space even in that event?</p>
+
+<h3><a name="space_reclaiming">3.5 Space reclaiming subprotocol</a></h3>
+
+<p>The algorithm for managing the disk space reserved for the backup service is not specified. Each implementation can use its own. However, when a peer deletes a copy of a chunk it has backed up, it shall send to the MC channel the following message:</p>
+
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><code>
+&lt;Version&gt; REMOVED &lt;SenderId&gt; &lt;FileId&gt; &lt;ChunkNo&gt; &lt;CRLF&gt;&lt;CRLF&gt;
+</code>
+</div>
+
+<p>Upon receiving this message, a peer that has a local copy of the chunk shall update its local count of this chunk. If this count drops below the desired replication degree of that chunk, it shall initiate the chunk backup subprotocol after a random delay uniformly distributed between 0 and 400 ms. If during this delay, a peer receives a <code>PUTCHUNK</code> message for the same file chunk, it should back off and restrain from starting yet another backup subprotocol for that file chunk.</p>
+
+<!--<p><strong>Food for thought:</strong> The loss of <code>REMOVED</code> messages may lead to an overestimation of the number of copies of a file chunk, and consequently its actual replication degree may be lower than the desired replication degree. One way to try to prevent this would be to add a response message. Can you think of other alternatives? What are the pros and cons?</p>-->
+
+<!--p><del><strong>Enhancement:</strong> If the peer that initiates the chunk backup subprotocol fails before finishing it, the replication degree of the file chunk may be lower than that desired. Can you think of a change to the protocol, compatible with the chunk backup subprotocol, that could tolerate this fault in an efficient way? Try to come up with a solution that works in both cases of execution of the chunk backup subprotocol, i.e. both when a chunk is being backed up for the first time and when a copy of the chunk is deleted.</del></p-->
+
+<h3>3.6 Protocol Enhancements</h3>
+
+<p>If you choose to enhance any of the subprotocols described above, or to create new subprotocols, to add some features, you must still allow for the execution of the vanilla version of the protocols. This is the reason for the first command line argument of the service to be the protocol version.</p>
+
+<p>If possible, you should avoid changing or adding any message. If you find that that is unavoidable, you should adhere to the following rules:</p>
+<ol>
+	<li>The header of each message shall be a sequence of lines, such that it does not break the general format rules used in the header definition: 
+	<ol type="i">
+	<li>The last header line is always an empty line, i.e. the <code>&lt;CRLF&gt;</code> ASCII character sequence</li>
+	<li>Each header line terminates with the <code>&lt;CRLF&gt;</code> ASCII character sequence</li>
+	<li>Fields in a header line are separated by the space ASCII char</li>
+    </ol>
+    </li>
+    <li>If you have to change messages defined herein, do not change the respective header line, instead add new header lines.</li>
+    <li>Any message either new or modified must use a version different from <b><tt>'1''.''0'</tt></b>, the version of the messages defined in this specification.</li>
+</ol>
+
+<h2><a name="client_interface">4. Client Interface</a></h2>
+
+<p>The peers must also provide an interface to allow a testing client to:</p>
+<dl>
+<dt><b>Backup a file</b></dt>
+<dd>The client shall specify the file pathname and the desired replication degree.</dd>
+<dt><b>Restore a file</b></dt>
+<dd> The client shall specify the file to restore by its pathname. </dd>
+<dt><b>Delete a file</b></dt>
+<dd>The client shall specify the file to delete by its pathname. </dd>
+<dt><b>Manage local service storage</b></dt>
+<dd>The client shall specify <b>the maximum disk space</b> in KBytes (1KByte = 1000 bytes) that can be used for storing chunks. It must be possible to specify a value of 0, thus reclaiming all disk space previously allocated to the service.</dd>
+<dt><b>Retrieve local service state information</b></dt>
+<dd>This operation allows to observe the service state. In response to such a request, the peer shall send to the client the following information:
+<ul>
+<li>For each file whose backup it has initiated:
+<ul>
+<li>The file pathname</li>
+<li>The backup service id of the file</li>
+<li>The desired replication degree</li>
+<li>For each chunk of the file:</li>
+<ul>
+<li>Its id</li>
+<li>Its perceived replication degree</li>
+</ul>
+</ul>
+<li>For each chunk it stores:</li>
+<ul>
+<li>Its id</li>
+<li>Its size (in KBytes)</li>
+<li>Its perceived replication degree</li>
+</ul>
+<li>The peer's storage capacity, i.e. the maximum amount of disk space that can be used to store chunks, and the amount of storage (both in KBytes) used to backup the chunks.</li>
+</ul>
+</dd>
+</dl>
+
+<h2><a name="implementation">5. Implementation Aspects</a></h2>
+
+<h3>5.1 Service implementation</h3>
+
+
+<p><b>The service must use only the Java SE.</b> E.g. you cannot use a database package, instead a peer must store each chunk as a file in the filesystem.</p>
+
+<h3>5.2 Client Interface Protocol</h3>
+
+<p>The testing application and your peers are different applications, and they should communicate by exchanging messages. Essentially, for testing purposes, the testing application is a client and the peers are servers. Therefore, you should define a client/server protocol between the testing application and a peer.</p>
+
+<p>You can use whatever "transport protocol" you deem appropriate, e.g. UDP, TCP or RMI. However, using RMI is worth 5% of the project.</p>
+
+<p>Your choice of transport protocol will affect the syntax of the <b>access point</b> (see the note just before <a href="#protocol"> Subsection 3.1</a>)  used in the invocation of the testing app.</p>
+<p>If you use either UDP or TCP, the format of the access point must be <code>&lt;IP address&gt;:&lt;port number&gt;</code>, where <code>&lt;IP address&gt;</code> and <code>&lt;port number&gt;</code> are respectively the IP address and the port number being used by the (initiator) peer to provide the testing service. If the access point includes only a port number (with or without <code>':'</code>), then you should assume that the initiator peer runs on the local host, i.e. the same host as the testing application.</p>
+<p>If you choose to use RMI in the communication between the test application and the peer, you should use as access point the name of the remote object providing the "testing" service.</p>
+
+<h2><a name="testing_client_app">6. Testing Client Application</a></h2>
+
+<p>To streamline the testing of your implementation of the service, and therefore reduce the time required for that test in the two lab classes following the submission of your service, you shall implement a small testing client application.</p>
+
+<p>This client will allow us to invoke the sub protocols provided by the service to backup, restore and delete files, as well as to reclaim the storage space being used by the service. In addition, it should also allow to inspect the internal state of a peer.</p>
+
+<p>Basically, this application shall implement the client role of the client interface protocol.</p>
+
+<h3>6.1 Invocation of the Testing Application</h3>
+
+<p>The testing application should be invoked as follows:</p>
+
+<div align="left" style="background-color: #E6E6FA;; white-space: pre; "><code>$ java TestApp &lt;peer_ap&gt; &lt;sub_protocol&gt; &lt;opnd_1&gt; &lt;opnd_2&gt;</code> </div>
+<p>where:</p>
+<dl>
+	<dt><b>&lt;peer_ap&gt;</b></dt>
+	<dd>Is the peer's access point. This depends on the implementation. (See the previous section)</dd>
+	<dt><b>&lt;operation&gt;</b></dt>
+	<dd>Is the operation the peer of the backup service must execute. It can be either the triggering of the subprotocol to test, or the retrieval of the peer's internal state. In the first case it must be one of: <code>BACKUP</code>, <code>RESTORE</code>, <code>DELETE</code>, <code>RECLAIM</code>. <!-- In the case of enhancements, you must append the substring <code>ENH</code> at the end of the respecive subprotocol, e.g. <code>BACKUPENH</code>.--> To retrieve the internal state, the value of this argument must be <code>STATE</code> </dd>
+	<dt><b>&lt;opnd_1&gt;</b></dt>
+	<dd>Is either the path name of the file to backup/restore/delete, for the respective 3 subprotocols, or, in the case of <code>RECLAIM</code> the maximum amount of disk space (in KByte) that the service can use to store the chunks. In the latter case, the peer should execute the <code>RECLAIM</code> protocol, upon deletion of any chunk. The <code>STATE</code> operation takes no operands.</dd>
+	<dt><b>&lt;opnd_2&gt;</b></dt>
+	<dd>This operand is an integer that specifies the desired replication degree and applies only to the backup protocol (or its enhancement)</dd>
+</dl>
+
+<p>E.g., by invoking:</p>
+<div align="left" style="background-color: #E6E6FA;; white-space: pre; "><code>
+$ java TestApp 1923 BACKUP test1.pdf 3
+</code> </div>
+<p>your <code>TestApp</code> is supposed to trigger the backup of file <code>test1.pdf</code> with a replication degree of 3. Likewise, by invoking:</p>
+<div align="left" style="background-color: #E6E6FA;; white-space: pre; "><code>
+$ java TestApp 1923 RESTORE test1.pdf
+</code> </div>
+<p>your <code>TestApp</code> is supposed to trigger the restoration of the previously replicated file <code>test1.pdf</code>. To delete that file you should invoke:</p>
+<div align="left" style="background-color: #E6E6FA;; white-space: pre; "><code>
+$ java TestApp 1923 DELETE test1.pdf
+</code> </div>
+<p>To reclaim all the disk space being used by the service, you should invoke:</p>
+<div align="left" style="background-color: #E6E6FA;; white-space: pre; "><code>
+$ java TestApp 1923 RECLAIM 0
+</code> </div>
+<p>Finally, to retrieve the internal state of the peer you should invoke:
+<div align="left" style="background-color: #E6E6FA;; white-space: pre; "><code>
+$ java TestApp 1923 STATE
+</code> </div></p>
+
+<h2><a name="final_considerations">7. Final Considerations</a></h2>
+
+<h3>7.1 Development Strategy</h3>
+
+<p>Follow an incremental development approach: before starting the development of the functionality required by one protocol, complete the implementation, of both the peer and the client, of functionality (excluding enhancements) required by the previous protocol.</p>
+
+<p>Implement the enhancements only after completing all the protocols without enhancements</p>
+
+<p>The suggested order for developing the subprotocols is: backup, delete, restore and reclaim.</p>
+
+<h3>7.2 Filesystem Structure</h3>
+
+<p>In order to allow testing of several peers on a single computer, each peer should use its own filesystem subtree to keep the chunks it is backing up, the files it has recovered, its own metadata etc. If all peers share the same filesytem subtree, we (and you) will not be able to know, by looking only at the filesystem, if your peer is saving/restoring data correctly.</p>
+
+
+<h3><a name="submission">7.3 What and how to submit?</a></h3>
+
+<p>You must submit all the source code files via <a href="https://git.fe.up.pt/">FEUP's Git Service.</a> Your project shall be named  <strong><tt>sdis1920-t&lt;n&gt;g&lt;p&gt;&lt;q&gt;</tt></strong> , where <tt>&lt;n&gt;</tt> is the number of your section (turma) and <tt>&lt;p&gt;&lt;q&gt;</tt> are two digits with the number of your group, e.g. <tt>sdis1920-t3g06</tt>. Your group id will be assigned to you by the staff after you fill <a href="https://docs.google.com/forms/d/e/1FAIpQLScXOChocirsh-2UGJlfRAZ3CR9zHYJNzpYFZCncmUnr9-KCpg/viewform?usp=sf_link">this form.</a></p>
+
+<p>This project should be private (all the code you submit should be yours, and nobody else should submit your code), and you should add all instrutors as reporters. Please use the following emails:</p>
+<ul>
+<li>sfcf@fe.up.pt</li>
+<li>hcastro@fe.up.pt</li>
+<li>ruirocha@fe.up.pt</li>
+<li>pfs@fe.up.pt</li>
+</ul>
+
+
+<p>In addition to the source code files, you should submit a plain ASCII file named <b><tt>README.txt</tt></b> with instructions for compiling and running your application <b></b>.</p>
+
+<p>Furthermore, if you implement any enhancement to the peers protocol specified in <a href="#protocol">Section 3</a> or <b>if your implementation supports the concurrent execution of protocols</b>, you should submit via Git also a report, a PDF file named <b><code>report.pdf</code></b>.</p>
+
+<p> The report should include the specification of each enhancement you implement and explain its rationale in at most one page (per enhancement). <b>If your implementation supports the concurrent execution of instances of the protocols defined in <a href="#protocol">Section 3</a>, you should describe your concurrency design in the report and refer to your code to explain how you implemented that design. (This description alone is worth up to 5%, and may take two or three pages, as necessary).</b> </p>
+
+<h3>7.4 Demo</h3>
+<p>You will have to demo your work in lab classes after the submission deadline. To streamline that demo, you will be required to start both the peers and the testing client application from the command line. We recommend that you write a simple script for that. The earlier you do it, preferrably in early development, the more time you'll save invoking your application.</p>
+
+<p>To encourage you following this approach, the demo set up is worth 5% of project grade.</p>
+
+<p> Finally, note that in the demo you will have to use the lab PCs. So to avoid loosing points in this criteria, you should practice the setup of your project before its demo.</p>
+
+<h3>7.5 Grading Criteria and Weights</h3>
+
+<p>We will test your implementation also with that of other groups, and possibly our own, to ensure that the protocols are implemented in an interoperable way. Therefore, we urge you to test your project with those of other groups as your development progresses, rather than leaving interoperability testing to the very end of project development.</p>
+
+<p>A proficient <b>concurrent</b> implementation of the subprotocols (without enhancements) is worth a project grade of 70%, as shown in the following table. </p>
+
+<div align="center">
+<table border=1 cellspacing=0 cellpading=1>
+<tr><td width=130>Subprotocol</td><td>Weight</td></tr>
+<tr><td>Backup</td><td>40%</td></tr>
+<tr><td>Restore</td><td>10%</td></tr>
+<tr><td>Delete</td><td>5%</td></tr>
+<tr><td>Space Reclaim</td><td>15%</td></tr>
+</table>
+</div>
+
+<p>For concurrency, you should use multiple threads. (Java NIO will be required only for the second project.) Please check these <a href="concurrency_hints.html">hints for concurrency design of the PUTCHUNK protocol.</a> The description of your concurrency design on the project's final report, is worth up to 5% of your final grade.</p>
+
+<p>By implementing each of the 3 suggested enhancements, you will get an additional 5%. (Thus, you will get an additional 15%, if you implement all enhancements.) Please note that your enhanced subprotocols should interoperate with non-enhanced subprotocols, therefore you must be very careful in the design of these enhancements.(Read the appendix on <a href="#interoperability">interoperability</a> for some suggestions.)</p>
+
+<p>The remaining 10% are assigned as follows: 5% for the use of RMI in the client/server protocol and 5% for demo setup.</p>
+
+<h2><a name="interoperability">Appendix A: Interoperability</a></h2>
+
+<p>Your implementation must interoperate with that of other students: we will test this. That is your service must be able to execute the 4 service operations using only the messages of the basic sub-protocols <a href="#protocol">specified in Section 3</a>. You should consider both the behavior as an initiator peer and otherwise. (Of course, if there are not enough remote peers implementing your enhancement, the corresponding enhanced protocol may fail.)</p>
+
+<p>To avoid interference between the execution of non-interoperable implementations, a service must drop messages that it does not understand. This is a general rule of every protocol.</p>
+
+<p>Anyway, to simplify testing, if you implement any enhancement, you should provide two operating modes: one with the enhancements and the other without, depending on the first argument of the service. The version without enhancements shall use only the messages defined <a href="#service">in Section 2.</a></p> 
+
+<p>You should carry out interoperability tests as soon as possible. The chunk backup subprotocol is a good starting point. If your implementation is able to execute this subprotocol with implementations from other groups, then it should not be hard to get the implementation of the other subprotocols to interoperate.</p>
+
+<p>This can be done rather early in your development and without much effort. You can provide a <code>.class</code> file that prints the messages to the standard output. (You must not share the <code>.java</code> file, because all the code submitted must have been developed by the group's members.) This way, other groups can use that file, to generate messages to test their own code, in particular the code that parses the messages.</p>
+
+
+</body>
+</html>

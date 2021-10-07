@@ -30,3 +30,8 @@ g02.iml
 *.gz
 *.fls
 *.fdb_latexmk
+
+# Executables
+*.out
+"Project 2"/src/g24/output/
+*.log
